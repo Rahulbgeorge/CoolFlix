@@ -1,0 +1,27 @@
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# Node dependencies
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Django media and DB
+*.sqlite3
+backend/media/
+db.sqlite3
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test videos (specifically requested to be excluded)
+test_videos/
+
+# System files
+.DS_Store
+Thumbs.db
