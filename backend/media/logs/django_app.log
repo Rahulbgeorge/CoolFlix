@@ -1,0 +1,85 @@
+INFO 2026-05-29 03:43:26,942 transcoder 40551 6177927168 Transcoder worker thread started.
+INFO 2026-05-29 03:43:26,943 transcoder 40550 6187757568 Transcoder worker thread started.
+INFO 2026-05-29 03:43:26,948 autoreload 40551 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 03:43:26,948 autoreload 40550 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 03:43:56,645 log 40551 6211579904 "GET / HTTP/1.1" 200 503
+INFO 2026-05-29 03:44:08,728 transcoder 40622 6176223232 Transcoder worker thread started.
+INFO 2026-05-29 03:54:34,846 transcoder 40756 6114160640 Transcoder worker thread started.
+INFO 2026-05-29 03:57:59,095 log 40551 6211579904 "GET / HTTP/1.1" 200 503
+INFO 2026-05-29 03:57:59,114 log 40551 6228406272 "GET /media/frontend/assets/index-C8tV8zds.css HTTP/1.1" 200 13176
+INFO 2026-05-29 03:57:59,115 log 40551 6211579904 "GET /media/frontend/assets/index-tdBXvM8H.js HTTP/1.1" 200 750231
+INFO 2026-05-29 03:57:59,175 log 40551 6211579904 "GET /api/videos HTTP/1.1" 200 21712
+INFO 2026-05-29 03:57:59,175 log 40551 6228406272 "GET /media/frontend/favicon.svg HTTP/1.1" 200 9522
+WARNING 2026-05-29 03:57:59,184 log 40551 6228406272 Not Found: /media/streamable/hitman20241080pnfweb-dlenglatinohinditamilteluguddp51atmosh264-btm/preview.mp4
+WARNING 2026-05-29 03:57:59,184 log 40551 6228406272 "GET /media/streamable/hitman20241080pnfweb-dlenglatinohinditamilteluguddp51atmosh264-btm/preview.mp4 HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,195 log 40551 6211579904 Not Found: /media/streamable/x-mendaysoffuturepast20142160phdrenglatinohinditamilteluguchibtm/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,195 log 40551 6228406272 Not Found: /media/streamable/hitman20241080pnfweb-dlenglatinohinditamilteluguddp51atmosh264-btm/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,195 log 40551 6211579904 "GET /media/streamable/x-mendaysoffuturepast20142160phdrenglatinohinditamilteluguchibtm/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,196 log 40551 6228406272 "GET /media/streamable/hitman20241080pnfweb-dlenglatinohinditamilteluguddp51atmosh264-btm/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,197 log 40551 6245232640 Not Found: /media/streamable/the-railway-mens0120231080pnfweb-dlhinditamilteluguddpatoms51-kin/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,198 log 40551 6262059008 Not Found: /media/streamable/citadeldianas01complete1080pweb-dlengitahinditamilteluguh264-btm/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,198 log 40551 6245232640 "GET /media/streamable/the-railway-mens0120231080pnfweb-dlhinditamilteluguddpatoms51-kin/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,199 log 40551 6278885376 Not Found: /media/streamable/jigarthanda-doublex-2023-1080p-hdrip-dual-audio-hindi-tamil-x264-esubs/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,199 log 40551 6262059008 "GET /media/streamable/citadeldianas01complete1080pweb-dlengitahinditamilteluguh264-btm/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,200 log 40551 6278885376 "GET /media/streamable/jigarthanda-doublex-2023-1080p-hdrip-dual-audio-hindi-tamil-x264-esubs/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,200 log 40551 6295711744 Not Found: /media/streamable/vikram-2022-1080p-hdrip-dual-audio-hindi-tamil-x264-esub/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,201 log 40551 6295711744 "GET /media/streamable/vikram-2022-1080p-hdrip-dual-audio-hindi-tamil-x264-esub/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,203 log 40551 6228406272 Not Found: /media/streamable/dhurandhar20251080pnfweb-dlhindicompletelyuncensored-tamil-teluguddp5_1/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,204 log 40551 6228406272 "GET /media/streamable/dhurandhar20251080pnfweb-dlhindicompletelyuncensored-tamil-teluguddp5_1/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,206 log 40551 6211579904 Not Found: /media/streamable/dragon2025tamilhindiengsubs1080pnfweb-dlx265ddp51-primefix/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,207 log 40551 6245232640 Not Found: /media/streamable/hitman20232160pnfweb-dldvhdrenglatinohinditamilteluguh265mp4-btm/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,207 log 40551 6211579904 "GET /media/streamable/dragon2025tamilhindiengsubs1080pnfweb-dlx265ddp51-primefix/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,208 log 40551 6245232640 "GET /media/streamable/hitman20232160pnfweb-dldvhdrenglatinohinditamilteluguh265mp4-btm/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,208 log 40551 6262059008 Not Found: /media/streamable/iruvar-1997-tamil-dvdrip-x264-e-subs-team-ddh_rg/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,209 log 40551 6262059008 "GET /media/streamable/iruvar-1997-tamil-dvdrip-x264-e-subs-team-ddh_rg/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,209 log 40551 6278885376 Not Found: /media/streamable/shaolin-soccer-2001-720p-bdrip-multi-audio-hinditamil-e/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,208 log 40551 6295711744 Not Found: /media/streamable/badboysforlife20202160pdvhdrenglatinoitahinditamiltelugump4-btm/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,209 log 40551 6278885376 "GET /media/streamable/shaolin-soccer-2001-720p-bdrip-multi-audio-hinditamil-e/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,209 log 40551 6295711744 "GET /media/streamable/badboysforlife20202160pdvhdrenglatinoitahinditamiltelugump4-btm/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,214 log 40551 6228406272 Not Found: /media/streamable/petta-2019-1080p-hdrip-tamil-telugu-hindi-x264-22gb-esubs/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,214 log 40551 6228406272 "GET /media/streamable/petta-2019-1080p-hdrip-tamil-telugu-hindi-x264-22gb-esubs/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,214 log 40551 6262059008 Not Found: /media/streamable/thewitchers042160pweb-dldvhdrlatinofreitahinditamiltelugump4-btm/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,215 log 40551 6211579904 Not Found: /media/streamable/twinkling-watermelon-2025-s01-ep-01-16-720p-tamil-telugu-hindi-kor/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,215 log 40551 6262059008 "GET /media/streamable/thewitchers042160pweb-dldvhdrlatinofreitahinditamiltelugump4-btm/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,215 log 40551 6245232640 Not Found: /media/streamable/padayappa-hd-17gig-tamil-english-subtitles/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,215 log 40551 6211579904 "GET /media/streamable/twinkling-watermelon-2025-s01-ep-01-16-720p-tamil-telugu-hindi-kor/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,215 log 40551 6245232640 "GET /media/streamable/padayappa-hd-17gig-tamil-english-subtitles/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:57:59,216 log 40551 6278885376 Not Found: /media/streamable/vidssavecom-athu-thalore-video-song-_-suriyas-karuppu-_-rj-balaji-_-saiabhyankkar-_-dream-warrior-pictures-1080p/thumbnail.jpg
+WARNING 2026-05-29 03:57:59,216 log 40551 6278885376 "GET /media/streamable/vidssavecom-athu-thalore-video-song-_-suriyas-karuppu-_-rj-balaji-_-saiabhyankkar-_-dream-warrior-pictures-1080p/thumbnail.jpg HTTP/1.1" 404 9
+INFO 2026-05-29 03:58:13,753 log 40551 6278885376 "GET /api/download-status HTTP/1.1" 200 381
+WARNING 2026-05-29 03:58:14,274 log 40551 6278885376 Not Found: /media/streamable/hitman20241080pnfweb-dlenglatinohinditamilteluguddp51atmosh264-btm/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,275 log 40551 6245232640 Not Found: /media/streamable/x-mendaysoffuturepast20142160phdrenglatinohinditamilteluguchibtm/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,276 log 40551 6295711744 Not Found: /media/streamable/vikram-2022-1080p-hdrip-dual-audio-hindi-tamil-x264-esub/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,277 log 40551 6278885376 "GET /media/streamable/hitman20241080pnfweb-dlenglatinohinditamilteluguddp51atmosh264-btm/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,277 log 40551 6262059008 Not Found: /media/streamable/citadeldianas01complete1080pweb-dlengitahinditamilteluguh264-btm/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,277 log 40551 6245232640 "GET /media/streamable/x-mendaysoffuturepast20142160phdrenglatinohinditamilteluguchibtm/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,277 log 40551 6295711744 "GET /media/streamable/vikram-2022-1080p-hdrip-dual-audio-hindi-tamil-x264-esub/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,278 log 40551 6211579904 Not Found: /media/streamable/the-railway-mens0120231080pnfweb-dlhinditamilteluguddpatoms51-kin/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,279 log 40551 6228406272 Not Found: /media/streamable/jigarthanda-doublex-2023-1080p-hdrip-dual-audio-hindi-tamil-x264-esubs/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,279 log 40551 6262059008 "GET /media/streamable/citadeldianas01complete1080pweb-dlengitahinditamilteluguh264-btm/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,280 log 40551 6211579904 "GET /media/streamable/the-railway-mens0120231080pnfweb-dlhinditamilteluguddpatoms51-kin/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,280 log 40551 6228406272 "GET /media/streamable/jigarthanda-doublex-2023-1080p-hdrip-dual-audio-hindi-tamil-x264-esubs/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,285 log 40551 6278885376 Not Found: /media/streamable/dragon2025tamilhindiengsubs1080pnfweb-dlx265ddp51-primefix/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,286 log 40551 6278885376 "GET /media/streamable/dragon2025tamilhindiengsubs1080pnfweb-dlx265ddp51-primefix/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,288 log 40551 6295711744 Not Found: /media/streamable/dhurandhar20251080pnfweb-dlhindicompletelyuncensored-tamil-teluguddp5_1/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,289 log 40551 6295711744 "GET /media/streamable/dhurandhar20251080pnfweb-dlhindicompletelyuncensored-tamil-teluguddp5_1/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,289 log 40551 6211579904 Not Found: /media/streamable/shaolin-soccer-2001-720p-bdrip-multi-audio-hinditamil-e/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,290 log 40551 6245232640 Not Found: /media/streamable/hitman20232160pnfweb-dldvhdrenglatinohinditamilteluguh265mp4-btm/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,291 log 40551 6262059008 Not Found: /media/streamable/iruvar-1997-tamil-dvdrip-x264-e-subs-team-ddh_rg/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,292 log 40551 6262059008 "GET /media/streamable/iruvar-1997-tamil-dvdrip-x264-e-subs-team-ddh_rg/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,291 log 40551 6245232640 "GET /media/streamable/hitman20232160pnfweb-dldvhdrenglatinohinditamilteluguh265mp4-btm/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,293 log 40551 6228406272 Not Found: /media/streamable/badboysforlife20202160pdvhdrenglatinoitahinditamiltelugump4-btm/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,293 log 40551 6211579904 "GET /media/streamable/shaolin-soccer-2001-720p-bdrip-multi-audio-hinditamil-e/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,295 log 40551 6228406272 "GET /media/streamable/badboysforlife20202160pdvhdrenglatinoitahinditamiltelugump4-btm/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,296 log 40551 6278885376 Not Found: /media/streamable/petta-2019-1080p-hdrip-tamil-telugu-hindi-x264-22gb-esubs/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,297 log 40551 6278885376 "GET /media/streamable/petta-2019-1080p-hdrip-tamil-telugu-hindi-x264-22gb-esubs/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,298 log 40551 6295711744 Not Found: /media/streamable/twinkling-watermelon-2025-s01-ep-01-16-720p-tamil-telugu-hindi-kor/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,298 log 40551 6262059008 Not Found: /media/streamable/thewitchers042160pweb-dldvhdrlatinofreitahinditamiltelugump4-btm/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,299 log 40551 6295711744 "GET /media/streamable/twinkling-watermelon-2025-s01-ep-01-16-720p-tamil-telugu-hindi-kor/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,300 log 40551 6262059008 "GET /media/streamable/thewitchers042160pweb-dldvhdrlatinofreitahinditamiltelugump4-btm/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,301 log 40551 6228406272 Not Found: /media/streamable/hitman20241080pnfweb-dlenglatinohinditamilteluguddp51atmosh264-btm/preview.mp4
+WARNING 2026-05-29 03:58:14,301 log 40551 6245232640 Not Found: /media/streamable/padayappa-hd-17gig-tamil-english-subtitles/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,302 log 40551 6228406272 "GET /media/streamable/hitman20241080pnfweb-dlenglatinohinditamilteluguddp51atmosh264-btm/preview.mp4 HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,302 log 40551 6245232640 "GET /media/streamable/padayappa-hd-17gig-tamil-english-subtitles/thumbnail.jpg HTTP/1.1" 404 9
+WARNING 2026-05-29 03:58:14,302 log 40551 6211579904 Not Found: /media/streamable/vidssavecom-athu-thalore-video-song-_-suriyas-karuppu-_-rj-balaji-_-saiabhyankkar-_-dream-warrior-pictures-1080p/thumbnail.jpg
+WARNING 2026-05-29 03:58:14,303 log 40551 6211579904 "GET /media/streamable/vidssavecom-athu-thalore-video-song-_-suriyas-karuppu-_-rj-balaji-_-saiabhyankkar-_-dream-warrior-pictures-1080p/thumbnail.jpg HTTP/1.1" 404 9

@@ -12,7 +12,6 @@ dist-ssr/
 
 # Django media and DB
 *.sqlite3
-backend/media/
 db.sqlite3
 
 # Python cache
