@@ -9,7 +9,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render
 from django.utils.text import slugify
 from .models import Setting, Video
-from .transcoder import transcode_queue
 from .infrastructure.cleaner import FileNameCleaner
 from .infrastructure.magnet_parser import MagnetParser
 from .infrastructure.torrent_downloader import TorrentDownloader
@@ -32,11 +31,13 @@ def config_api(request):
     if request.method == 'GET':
         source_loc = get_setting('source_loc')
         output_loc = get_setting('output_loc')
+        default_target = get_setting('default_transcode_target', 'original')
         if not output_loc and source_loc:
             output_loc = os.path.join(source_loc, 'streamable')
         return JsonResponse({
             'source_loc': source_loc,
-            'output_loc': output_loc
+            'output_loc': output_loc,
+            'default_transcode_target': default_target
         })
         
     elif request.method == 'POST':
@@ -44,6 +45,7 @@ def config_api(request):
             data = json.loads(request.body)
             source_loc = data.get('source_loc', '').strip()
             output_loc = data.get('output_loc', '').strip()
+            default_target = data.get('default_transcode_target', 'original').strip()
             
             if not source_loc:
                 return JsonResponse({'error': 'Source location cannot be empty'}, status=400)
@@ -57,6 +59,9 @@ def config_api(request):
             if not output_loc:
                 output_loc = os.path.join(source_loc, 'streamable')
                 
+            if default_target not in ['original', '1080p', '720p', '480p']:
+                default_target = 'original'
+                
             # Create output directory if it doesn't exist
             try:
                 os.makedirs(output_loc, exist_ok=True)
@@ -65,10 +70,12 @@ def config_api(request):
                 
             set_setting('source_loc', source_loc)
             set_setting('output_loc', output_loc)
+            set_setting('default_transcode_target', default_target)
             return JsonResponse({
                 'success': True,
                 'source_loc': source_loc,
-                'output_loc': output_loc
+                'output_loc': output_loc,
+                'default_transcode_target': default_target
             })
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON body'}, status=400)
@@ -179,6 +186,7 @@ def scan_api(request):
                 original_path=final_path,
                 slug=slug,
                 status='pending',
+                transcode_target=get_setting('default_transcode_target', 'original'),
                 progress=0.0,
                 cleaned_title=clean_res.cleaned_name,
                 release_year=clean_res.year,
@@ -193,8 +201,6 @@ def scan_api(request):
                 is_series=clean_res.is_series
             )
             
-            # Put on processing queue
-            transcode_queue.put(video.id)
             new_videos_count += 1
             
         except Exception as item_err:
@@ -245,6 +251,7 @@ def videos_list_api(request):
             'size': v.size,
             'subtitles': v.subtitles,
             'is_series': v.is_series,
+            'transcode_target': v.transcode_target,
         })
         
     return JsonResponse({'videos': result})
@@ -314,11 +321,12 @@ def video_detail_api(request, video_id):
         'size': v.size,
         'subtitles': v.subtitles,
         'is_series': v.is_series,
+        'transcode_target': v.transcode_target,
     })
 
 @csrf_exempt
 def video_retry_api(request, video_id):
-    """Enqueues a failed video for transcoding retry."""
+    """Enqueues a failed or completed video for transcoding retry."""
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
         
@@ -330,12 +338,24 @@ def video_retry_api(request, video_id):
     if video.status != 'failed' and video.status != 'completed':
         return JsonResponse({'error': 'Only failed or completed videos can be retried'}, status=400)
         
+    # Read target quality from request body or query parameter
+    target = 'original'
+    try:
+        if request.body:
+            data = json.loads(request.body)
+            target = data.get('target', 'original')
+    except Exception:
+        target = request.GET.get('target', video.transcode_target)
+        
+    if target not in ['original', '1080p', '720p', '480p']:
+        target = 'original'
+        
+    video.transcode_target = target
     video.status = 'pending'
     video.progress = 0.0
     video.error_message = None
     video.save()
     
-    transcode_queue.put(video.id)
     return JsonResponse({'success': True, 'queued': True})
 
 def serve_streamable_file(request, relative_path):

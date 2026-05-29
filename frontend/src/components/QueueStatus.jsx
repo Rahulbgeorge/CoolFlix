@@ -3,15 +3,22 @@ import { RefreshCw, AlertTriangle, FileVideo, CheckCircle2, RotateCcw } from 'lu
 
 export default function QueueStatus({ videos, apiBaseUrl, onRetryComplete }) {
   const [retryingIds, setRetryingIds] = useState(new Set());
+  const [selectedTargets, setSelectedTargets] = useState({});
 
   const handleRetry = async (video) => {
     const nextRetrying = new Set(retryingIds);
     nextRetrying.add(video.id);
     setRetryingIds(nextRetrying);
 
+    const target = selectedTargets[video.id] || video.transcode_target || 'original';
+
     try {
       const response = await fetch(`${apiBaseUrl}/api/videos/${video.id}/retry`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ target })
       });
       if (response.ok) {
         if (onRetryComplete) {
@@ -97,15 +104,42 @@ export default function QueueStatus({ videos, apiBaseUrl, onRetryComplete }) {
                       {getStatusLabel(video.status)}
                     </span>
                     {(isFailed || video.status === 'completed') && (
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '6px 12px', fontSize: '11px', gap: '4px' }}
-                        onClick={() => handleRetry(video)}
-                        disabled={isRetrying}
-                      >
-                        <RotateCcw size={12} />
-                        {isRetrying ? 'Retrying...' : 'Re-transcode'}
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <select
+                          value={selectedTargets[video.id] || video.transcode_target || 'original'}
+                          onChange={(e) => setSelectedTargets({ ...selectedTargets, [video.id]: e.target.value })}
+                          disabled={isRetrying}
+                          style={{
+                            padding: '6px 10px',
+                            borderRadius: '4px',
+                            backgroundColor: '#1a1a1a',
+                            color: '#fff',
+                            border: '1px solid #333',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            outline: 'none'
+                          }}
+                        >
+                          <option value="original">Original (Streamable As Is)</option>
+                          <option value="1080p">1080p Full HD</option>
+                          <option value="720p">720p HD</option>
+                          <option value="480p">480p SD</option>
+                        </select>
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: '6px 12px', fontSize: '11px', gap: '4px' }}
+                          onClick={() => handleRetry(video)}
+                          disabled={isRetrying}
+                        >
+                          <RotateCcw size={12} />
+                          {isRetrying ? 'Retrying...' : 'Re-transcode'}
+                        </button>
+                      </div>
+                    )}
+                    {(video.status === 'processing' || video.status === 'pending') && (
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Target: {video.transcode_target === 'original' ? 'Original' : video.transcode_target}
+                      </span>
                     )}
                   </div>
                 </div>

@@ -4,22 +4,14 @@
 # Exit on error
 set -e
 
-# Target paths
-TARGET_DIR="/home/eleven/servers/netflix-clone"
-FRONTEND_DIR="$TARGET_DIR/frontend"
-BACKEND_MEDIA_DIR="$TARGET_DIR/backend/media/frontend"
+# Determine paths dynamically relative to script location
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+FRONTEND_DIR="$PROJECT_DIR/frontend"
+BACKEND_MEDIA_DIR="$PROJECT_DIR/backend/media/frontend"
 
 echo "=== Compiling React Frontend and Publishing to Backend ==="
-
-# Check if target directory exists
-if [ ! -d "$FRONTEND_DIR" ]; then
-    # Fallback to local script relative path if not on target server
-    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-    TARGET_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-    FRONTEND_DIR="$TARGET_DIR/frontend"
-    BACKEND_MEDIA_DIR="$TARGET_DIR/backend/media/frontend"
-fi
-
+echo "Project directory: $PROJECT_DIR"
 echo "Frontend directory: $FRONTEND_DIR"
 echo "Backend media target: $BACKEND_MEDIA_DIR"
 

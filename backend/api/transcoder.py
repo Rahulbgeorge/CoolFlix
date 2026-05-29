@@ -3,17 +3,11 @@ import json
 import shutil
 import logging
 import subprocess
-import threading
-import queue
 from django.conf import settings
 from django.utils.text import slugify
 from .models import Video, Setting
 
 logger = logging.getLogger(__name__)
-
-# Thread-safe queue for sequential video transcoding
-transcode_queue = queue.Queue()
-worker_thread = None
 
 from .infrastructure.transcoder import FFmpegTranscoder
 
@@ -94,7 +88,10 @@ class VideoProcessor:
                 height=video.height,
                 duration=video.duration,
                 has_audio=info['has_audio'],
-                progress_callback=hls_progress_callback
+                progress_callback=hls_progress_callback,
+                target_quality=video.transcode_target,
+                video_codec=info.get('video_codec', ''),
+                audio_codec=info.get('audio_codec', '')
             )
             
             # Complete
@@ -109,42 +106,5 @@ class VideoProcessor:
             video.error_message = str(e)
             video.save()
 
-def start_worker():
-    """Starts the background worker thread if not already running."""
-    global worker_thread
-    if worker_thread is None or not worker_thread.is_alive():
-        worker_thread = threading.Thread(target=_worker_loop, name="TranscoderWorker", daemon=True)
-        worker_thread.start()
 
-def _worker_loop():
-    """Background queue worker loop."""
-    logger.info("Transcoder worker thread started.")
-    
-    # Re-enqueue any videos that were interrupted in the 'processing' or 'pending' state
-    try:
-        from django.db.utils import OperationalError
-        pending_videos = Video.objects.filter(status__in=['pending', 'processing'])
-        for v in pending_videos:
-            if v.status == 'processing':
-                v.status = 'pending'
-                v.progress = 0.0
-                v.save(update_fields=['status', 'progress'])
-            transcode_queue.put(v.id)
-            logger.info(f"Re-enqueued video {v.title} on startup.")
-    except OperationalError:
-        # DB might not be initialized yet
-        pass
-    except Exception as e:
-        logger.error(f"Error re-enqueuing videos on worker startup: {e}")
-
-    while True:
-        try:
-            video_id = transcode_queue.get()
-            if video_id is None:
-                break
-            VideoProcessor.process_video_pipeline(video_id)
-        except Exception as e:
-            logger.error(f"Error in transcoder worker loop: {e}")
-        finally:
-            transcode_queue.task_done()
 

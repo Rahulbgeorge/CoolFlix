@@ -19,6 +19,16 @@ class Video(models.Model):
     original_path = models.CharField(max_length=1024, unique=True)
     slug = models.SlugField(max_length=255, unique=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    transcode_target = models.CharField(
+        max_length=50,
+        default='original',
+        choices=[
+            ('original', 'Original (Streamable As Is)'),
+            ('1080p', '1080p Full HD'),
+            ('720p', '720p HD'),
+            ('480p', '480p SD')
+        ]
+    )
     progress = models.FloatField(default=0.0)
     error_message = models.TextField(blank=True, null=True)
     duration = models.FloatField(default=0.0)

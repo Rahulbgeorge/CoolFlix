@@ -4,6 +4,7 @@ import { X, FolderOpen, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react
 export default function SettingsModal({ isOpen, onClose, apiBaseUrl, onScanComplete }) {
   const [sourceLoc, setSourceLoc] = useState('');
   const [outputLoc, setOutputLoc] = useState('');
+  const [defaultTranscodeTarget, setDefaultTranscodeTarget] = useState('original');
   const [isOutputLocCustomized, setIsOutputLocCustomized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -18,6 +19,7 @@ export default function SettingsModal({ isOpen, onClose, apiBaseUrl, onScanCompl
       const data = await response.json();
       setSourceLoc(data.source_loc || '');
       setOutputLoc(data.output_loc || '');
+      setDefaultTranscodeTarget(data.default_transcode_target || 'original');
       if (data.output_loc && data.source_loc && data.output_loc !== `${data.source_loc}/streamable`) {
         setIsOutputLocCustomized(true);
       }
@@ -46,7 +48,11 @@ export default function SettingsModal({ isOpen, onClose, apiBaseUrl, onScanCompl
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ source_loc: sourceLoc, output_loc: outputLoc }),
+        body: JSON.stringify({
+          source_loc: sourceLoc,
+          output_loc: outputLoc,
+          default_transcode_target: defaultTranscodeTarget
+        }),
       });
       const data = await response.json();
       if (response.ok) {
@@ -188,6 +194,34 @@ export default function SettingsModal({ isOpen, onClose, apiBaseUrl, onScanCompl
                   }}
                 />
               </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="default-quality">
+                Default Transcode Quality
+              </label>
+              <select
+                id="default-quality"
+                className="form-input"
+                value={defaultTranscodeTarget}
+                onChange={(e) => setDefaultTranscodeTarget(e.target.value)}
+                style={{
+                  backgroundColor: '#1f1f1f',
+                  border: '1px solid #333',
+                  color: '#fff',
+                  padding: '10px 14px',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  width: '100%',
+                  outline: 'none'
+                }}
+              >
+                <option value="original">Original (Streamable As Is)</option>
+                <option value="1080p">1080p Full HD</option>
+                <option value="720p">720p HD</option>
+                <option value="480p">480p SD</option>
+              </select>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

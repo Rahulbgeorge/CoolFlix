@@ -83,3 +83,85 @@ WARNING 2026-05-29 03:58:14,302 log 40551 6228406272 "GET /media/streamable/hitm
 WARNING 2026-05-29 03:58:14,302 log 40551 6245232640 "GET /media/streamable/padayappa-hd-17gig-tamil-english-subtitles/thumbnail.jpg HTTP/1.1" 404 9
 WARNING 2026-05-29 03:58:14,302 log 40551 6211579904 Not Found: /media/streamable/vidssavecom-athu-thalore-video-song-_-suriyas-karuppu-_-rj-balaji-_-saiabhyankkar-_-dream-warrior-pictures-1080p/thumbnail.jpg
 WARNING 2026-05-29 03:58:14,303 log 40551 6211579904 "GET /media/streamable/vidssavecom-athu-thalore-video-song-_-suriyas-karuppu-_-rj-balaji-_-saiabhyankkar-_-dream-warrior-pictures-1080p/thumbnail.jpg HTTP/1.1" 404 9
+INFO 2026-05-29 04:31:25,174 transcoder 41430 6175354880 Transcoder worker thread started.
+INFO 2026-05-29 04:39:08,199 log 40551 6211579904 "GET /api/videos HTTP/1.1" 200 21712
+INFO 2026-05-29 04:39:08,202 log 40551 6211579904 "GET /api/videos HTTP/1.1" 200 21712
+WARNING 2026-05-29 04:39:08,215 log 40551 6245232640 Not Found: /media/streamable/hitman20241080pnfweb-dlenglatinohinditamilteluguddp51atmosh264-btm/preview.mp4
+WARNING 2026-05-29 04:39:08,216 log 40551 6245232640 "GET /media/streamable/hitman20241080pnfweb-dlenglatinohinditamilteluguddp51atmosh264-btm/preview.mp4 HTTP/1.1" 404 9
+INFO 2026-05-29 17:04:16,842 autoreload 40550 8417931520 /Users/rahulbg/netflix-clone/backend/api/infrastructure/transcoder.py changed, reloading.
+INFO 2026-05-29 17:04:16,844 autoreload 40551 8417931520 /Users/rahulbg/netflix-clone/backend/api/infrastructure/transcoder.py changed, reloading.
+INFO 2026-05-29 17:04:17,166 transcoder 43445 6181629952 Transcoder worker thread started.
+INFO 2026-05-29 17:04:17,166 transcoder 43446 6186414080 Transcoder worker thread started.
+INFO 2026-05-29 17:04:17,175 autoreload 43446 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:04:17,175 autoreload 43445 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:05:35,216 transcoder 43489 6147567616 Transcoder worker thread started.
+INFO 2026-05-29 17:11:48,379 autoreload 43445 8417931520 /Users/rahulbg/netflix-clone/backend/api/models.py changed, reloading.
+INFO 2026-05-29 17:11:48,386 autoreload 43446 8417931520 /Users/rahulbg/netflix-clone/backend/api/models.py changed, reloading.
+INFO 2026-05-29 17:11:48,677 transcoder 43547 6110998528 Transcoder worker thread started.
+INFO 2026-05-29 17:11:48,677 transcoder 43546 6121009152 Transcoder worker thread started.
+INFO 2026-05-29 17:11:48,686 autoreload 43546 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:11:48,686 autoreload 43547 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:11:52,179 transcoder 43559 6144323584 Transcoder worker thread started.
+INFO 2026-05-29 17:11:52,426 transcoder 43558 6179270656 Transcoder worker thread started.
+INFO 2026-05-29 17:11:57,960 autoreload 43546 8417931520 /Users/rahulbg/netflix-clone/backend/api/apps.py changed, reloading.
+INFO 2026-05-29 17:11:57,964 autoreload 43547 8417931520 /Users/rahulbg/netflix-clone/backend/api/apps.py changed, reloading.
+INFO 2026-05-29 17:11:58,209 autoreload 43569 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:11:58,211 autoreload 43568 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:12:04,445 autoreload 43568 8417931520 /Users/rahulbg/netflix-clone/backend/api/transcoder.py changed, reloading.
+INFO 2026-05-29 17:12:04,446 autoreload 43569 8417931520 /Users/rahulbg/netflix-clone/backend/api/transcoder.py changed, reloading.
+INFO 2026-05-29 17:12:04,655 autoreload 43578 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:12:04,655 autoreload 43577 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:12:09,728 autoreload 43577 8417931520 /Users/rahulbg/netflix-clone/backend/api/transcoder.py changed, reloading.
+INFO 2026-05-29 17:12:09,753 autoreload 43578 8417931520 /Users/rahulbg/netflix-clone/backend/api/transcoder.py changed, reloading.
+INFO 2026-05-29 17:12:09,903 autoreload 43585 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:12:09,928 autoreload 43586 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:12:27,090 autoreload 43585 8417931520 /Users/rahulbg/netflix-clone/backend/api/infrastructure/transcoder.py changed, reloading.
+INFO 2026-05-29 17:12:27,121 autoreload 43586 8417931520 /Users/rahulbg/netflix-clone/backend/api/infrastructure/transcoder.py changed, reloading.
+INFO 2026-05-29 17:12:27,326 autoreload 43601 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:12:27,326 autoreload 43600 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:12:36,426 autoreload 43601 8417931520 /Users/rahulbg/netflix-clone/backend/api/transcoder.py changed, reloading.
+INFO 2026-05-29 17:12:36,432 autoreload 43600 8417931520 /Users/rahulbg/netflix-clone/backend/api/transcoder.py changed, reloading.
+INFO 2026-05-29 17:12:36,598 autoreload 43610 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:12:36,598 autoreload 43611 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:12:58,838 autoreload 43610 8417931520 /Users/rahulbg/netflix-clone/backend/api/views.py changed, reloading.
+INFO 2026-05-29 17:12:58,842 autoreload 43611 8417931520 /Users/rahulbg/netflix-clone/backend/api/views.py changed, reloading.
+INFO 2026-05-29 17:12:59,041 autoreload 43626 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:12:59,041 autoreload 43627 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:13:08,320 autoreload 43627 8417931520 /Users/rahulbg/netflix-clone/backend/api/views.py changed, reloading.
+INFO 2026-05-29 17:13:08,322 autoreload 43626 8417931520 /Users/rahulbg/netflix-clone/backend/api/views.py changed, reloading.
+INFO 2026-05-29 17:13:08,552 autoreload 43636 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:13:08,553 autoreload 43637 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:13:15,794 autoreload 43636 8417931520 /Users/rahulbg/netflix-clone/backend/api/views.py changed, reloading.
+INFO 2026-05-29 17:13:15,797 autoreload 43637 8417931520 /Users/rahulbg/netflix-clone/backend/api/views.py changed, reloading.
+INFO 2026-05-29 17:13:16,020 autoreload 43649 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:13:16,020 autoreload 43650 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:13:23,273 autoreload 43649 8417931520 /Users/rahulbg/netflix-clone/backend/api/views.py changed, reloading.
+INFO 2026-05-29 17:13:23,278 autoreload 43650 8417931520 /Users/rahulbg/netflix-clone/backend/api/views.py changed, reloading.
+INFO 2026-05-29 17:13:23,490 autoreload 43659 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:13:23,490 autoreload 43660 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:13:30,742 autoreload 43659 8417931520 /Users/rahulbg/netflix-clone/backend/api/views.py changed, reloading.
+INFO 2026-05-29 17:13:30,744 autoreload 43660 8417931520 /Users/rahulbg/netflix-clone/backend/api/views.py changed, reloading.
+INFO 2026-05-29 17:13:30,960 autoreload 43669 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:13:30,960 autoreload 43668 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:13:41,240 autoreload 43669 8417931520 /Users/rahulbg/netflix-clone/backend/api/views.py changed, reloading.
+INFO 2026-05-29 17:13:41,242 autoreload 43668 8417931520 /Users/rahulbg/netflix-clone/backend/api/views.py changed, reloading.
+INFO 2026-05-29 17:13:41,476 autoreload 43680 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:13:41,476 autoreload 43681 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-29 17:14:51,615 transcoder 43722 8417931520 Codes are compatible (H264/AAC). Initiating stream copying...
+INFO 2026-05-29 17:14:51,615 transcoder 43722 8417931520 Executing FFmpeg command: ffmpeg -y -i video.mp4 -progress - -map 0:v:0 -c:v copy -map 0:a:0 -c:a copy -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,a:0 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+INFO 2026-05-29 17:14:51,616 transcoder 43722 8417931520 Attempting GPU/CUDA accelerated HLS transcoding...
+INFO 2026-05-29 17:14:51,616 transcoder 43722 8417931520 Executing FFmpeg command: ffmpeg -y -hwaccel cuda -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v h264_nvenc -preset fast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a aac -b:a 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,a:0 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+INFO 2026-05-29 17:14:51,617 transcoder 43722 8417931520 Attempting GPU/CUDA accelerated HLS transcoding...
+INFO 2026-05-29 17:14:51,617 transcoder 43722 8417931520 Executing FFmpeg command: ffmpeg -y -hwaccel cuda -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v h264_nvenc -preset fast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a aac -b:a 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,a:0 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+WARNING 2026-05-29 17:14:51,617 transcoder 43722 8417931520 GPU transcoding failed: FFmpeg failed with exit code 1. Log: error
+. Falling back to CPU...
+INFO 2026-05-29 17:14:51,617 transcoder 43722 8417931520 Executing FFmpeg command: ffmpeg -y -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v libx264 -preset veryfast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a aac -b:a 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,a:0 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+INFO 2026-05-29 17:18:01,896 transcoder 43756 8417931520 Codes are compatible (H264/AAC). Initiating stream copying...
+INFO 2026-05-29 17:18:01,897 transcoder 43756 8417931520 Executing FFmpeg command: ffmpeg -y -i video.mp4 -progress - -map 0:v:0 -c:v copy -map 0:a:0 -c:a copy -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,a:0 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+INFO 2026-05-29 17:18:01,897 transcoder 43756 8417931520 Attempting GPU/CUDA accelerated HLS transcoding...
+INFO 2026-05-29 17:18:01,897 transcoder 43756 8417931520 Executing FFmpeg command: ffmpeg -y -hwaccel cuda -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v h264_nvenc -preset fast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a aac -b:a 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,a:0 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+INFO 2026-05-29 17:18:01,898 transcoder 43756 8417931520 Attempting GPU/CUDA accelerated HLS transcoding...
+INFO 2026-05-29 17:18:01,898 transcoder 43756 8417931520 Executing FFmpeg command: ffmpeg -y -hwaccel cuda -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v h264_nvenc -preset fast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a aac -b:a 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,a:0 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+WARNING 2026-05-29 17:18:01,898 transcoder 43756 8417931520 GPU transcoding failed: FFmpeg failed with exit code 1. Log: error
+. Falling back to CPU...
+INFO 2026-05-29 17:18:01,898 transcoder 43756 8417931520 Executing FFmpeg command: ffmpeg -y -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v libx264 -preset veryfast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a aac -b:a 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,a:0 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
