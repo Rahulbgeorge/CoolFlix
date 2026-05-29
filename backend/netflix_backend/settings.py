@@ -74,13 +74,56 @@ WSGI_APPLICATION = 'netflix_backend.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
+import sys
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'netflix_clone',
+        'USER': 'root',
+        'PASSWORD': '',
+        'HOST': '127.0.0.1',
+        'PORT': '3306',
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'charset': 'utf8mb4',
+        }
     }
 }
+
+# Fallback to SQLite if MySQL is not available or connection fails
+# (or when running tests)
+if 'test' in sys.argv or '--sqlite' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    try:
+        import pymysql
+        conn = pymysql.connect(
+            host=DATABASES['default']['HOST'],
+            port=int(DATABASES['default']['PORT']),
+            user=DATABASES['default']['USER'],
+            password=DATABASES['default']['PASSWORD'],
+            database=DATABASES['default']['NAME'],
+            connect_timeout=1
+        )
+        conn.close()
+    except Exception as e:
+        print("\n" + "="*80)
+        print("WARNING: Could not connect to MySQL server. Falling back to SQLite.")
+        print(f"Details: {e}")
+        print("To use MySQL, make sure it is running and you have created the 'netflix_clone' DB.")
+        print("="*80 + "\n")
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 
 
 # Password validation
@@ -127,4 +170,60 @@ CORS_ALLOW_ALL_ORIGINS = True
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Torrent Downloader Config
+import os
+TORRENT_DOWNLOAD_DIR = os.path.abspath(os.path.join(BASE_DIR, '..', 'test_videos'))
+
+# Logging configuration
+LOGS_DIR = '/var/logs/netflix-clone'
+if not os.path.exists(LOGS_DIR):
+    LOGS_DIR = os.path.join(BASE_DIR, 'media', 'logs')
+try:
+    os.makedirs(LOGS_DIR, exist_ok=True)
+except Exception:
+    # Fallback to current directory if permissions fail
+    LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+    os.makedirs(LOGS_DIR, exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOGS_DIR, 'django_app.log'),
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'api': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
 

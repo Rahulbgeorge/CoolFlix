@@ -17,16 +17,18 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
-from django.conf.urls.static import static
-from api.views import serve_streamable_file
+from django.views.static import serve
+from api.views import serve_streamable_file, serve_frontend
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
     path('media/streamable/<path:relative_path>', serve_streamable_file, name='serve_streamable_file'),
+    # Serve media files including built frontend assets
+    path('media/<path:path>', serve, {'document_root': settings.MEDIA_ROOT}),
+    # Serve frontend index.html for root path
+    path('', serve_frontend, name='frontend_root'),
+    # Catch-all to support frontend SPA client routes
+    path('<path:path>', serve_frontend, name='frontend_catchall'),
 ]
-
-if settings.DEBUG:
-    # Use normal media serve for fallback items if any, but streamable is intercepted above
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

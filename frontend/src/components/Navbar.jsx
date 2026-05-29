@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, Film, ListOrdered } from 'lucide-react';
+import { Settings, Film, ListOrdered, Download } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, onOpenSettings }) {
   const [scrolled, setScrolled] = useState(false);
@@ -46,6 +46,18 @@ export default function Navbar({ activeTab, setActiveTab, onOpenSettings }) {
           >
             <ListOrdered size={16} />
             Transcode Queue
+          </a>
+          <a
+            href="#"
+            className={`navbar-link ${activeTab === 'downloader' ? 'active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveTab('downloader');
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Download size={16} />
+            Downloader
           </a>
         </div>
       </div>

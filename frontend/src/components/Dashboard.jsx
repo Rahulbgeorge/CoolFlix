@@ -23,7 +23,53 @@ export default function Dashboard({ videos, onPlay, onOpenSettings, onSwitchTab 
           />
           <div className="hero-overlay" />
           <div className="hero-content">
-            <h1 className="hero-title">{featuredVideo.title}</h1>
+            <h1 className="hero-title">{featuredVideo.cleaned_title || featuredVideo.title}</h1>
+            
+            {/* Hero metadata badges */}
+            <div className="hero-meta-row" style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px', 
+              fontSize: '14px', 
+              color: '#fff', 
+              marginTop: '10px',
+              marginBottom: '15px',
+              fontWeight: '500'
+            }}>
+              {featuredVideo.year && <span style={{ color: '#a3a3a3' }}>{featuredVideo.year}</span>}
+              {featuredVideo.resolution && (
+                <span style={{ 
+                  border: '1px solid rgba(255,255,255,0.6)', 
+                  padding: '1px 6px', 
+                  borderRadius: '3px', 
+                  fontSize: '11px',
+                  textTransform: 'uppercase',
+                  fontWeight: 'bold',
+                  letterSpacing: '1px'
+                }}>
+                  {featuredVideo.resolution}
+                </span>
+              )}
+              {featuredVideo.size && <span style={{ color: '#a3a3a3' }}>{featuredVideo.size}</span>}
+              {featuredVideo.subtitles && (
+                <span style={{ 
+                  border: '1px solid rgba(255,255,255,0.6)', 
+                  padding: '1px 6px', 
+                  borderRadius: '3px', 
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  backgroundColor: 'rgba(255,255,255,0.1)'
+                }}>
+                  SUBTITLES
+                </span>
+              )}
+              {featuredVideo.languages && featuredVideo.languages.length > 0 && (
+                <span style={{ color: 'var(--accent-red)', fontWeight: '600' }}>
+                  {featuredVideo.languages.join(' • ')}
+                </span>
+              )}
+            </div>
+
             <p className="hero-desc">
               Watch this video in full high-definition adaptive HLS streams. Transcoded with custom profiles,
               complete with interactive scrubber previews, multiple quality channels, and responsive playback speeds.

@@ -4,8 +4,11 @@ import Dashboard from './components/Dashboard';
 import QueueStatus from './components/QueueStatus';
 import SettingsModal from './components/SettingsModal';
 import VideoPlayer from './components/VideoPlayer';
+import Downloader from './components/Downloader';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = window.location.hostname === 'localhost' && window.location.port === '5173'
+  ? 'http://localhost:8000'
+  : window.location.origin;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('browse');
@@ -92,11 +95,15 @@ export default function App() {
               onOpenSettings={() => setIsSettingsOpen(true)}
               onSwitchTab={setActiveTab}
             />
-          ) : (
+          ) : activeTab === 'queue' ? (
             <QueueStatus
               videos={videos}
               apiBaseUrl={API_BASE_URL}
               onRetryComplete={fetchVideos}
+            />
+          ) : (
+            <Downloader
+              apiBaseUrl={API_BASE_URL}
             />
           )}
 

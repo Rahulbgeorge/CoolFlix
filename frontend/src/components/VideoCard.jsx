@@ -82,7 +82,7 @@ export default function VideoCard({ video, onPlay, onSelectRow }) {
             padding: '16px'
           }}
         >
-          <span>{video.title}</span>
+          <span>{video.cleaned_title || video.title}</span>
         </div>
       )}
 
@@ -114,8 +114,61 @@ export default function VideoCard({ video, onPlay, onSelectRow }) {
 
       {/* Overlay details */}
       <div className="video-card-overlay">
-        <h4 className="video-card-title">{video.title}</h4>
-        <div className="video-card-meta">
+        <h4 className="video-card-title">{video.cleaned_title || video.title}</h4>
+        
+        {/* Parsed Metadata Badges */}
+        <div className="video-card-info" style={{ 
+          fontSize: '11px', 
+          color: '#e5e5e5', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px', 
+          flexWrap: 'wrap', 
+          marginTop: '4px',
+          fontWeight: '500'
+        }}>
+          {video.year && <span>{video.year}</span>}
+          {video.resolution && (
+            <span style={{ 
+              border: '1px solid rgba(255,255,255,0.4)', 
+              padding: '0 4px', 
+              borderRadius: '2px', 
+              fontSize: '9px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              {video.resolution}
+            </span>
+          )}
+          {video.size && <span>{video.size}</span>}
+          {video.subtitles && (
+            <span style={{ 
+              border: '1px solid rgba(255,255,255,0.4)', 
+              padding: '0 4px', 
+              borderRadius: '2px', 
+              fontSize: '9px',
+              backgroundColor: 'rgba(255,255,255,0.1)'
+            }}>
+              SUB
+            </span>
+          )}
+        </div>
+
+        {/* Language tags */}
+        {video.languages && video.languages.length > 0 && (
+          <div className="video-card-languages" style={{ 
+            fontSize: '10.5px', 
+            color: 'var(--accent-red)', 
+            marginTop: '4px', 
+            whiteSpace: 'nowrap', 
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis' 
+          }}>
+            {video.languages.join(' • ')}
+          </div>
+        )}
+
+        <div className="video-card-meta" style={{ marginTop: '6px' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             {isCompleted && <Play size={10} fill="currentColor" />}
             {isCompleted ? 'Play' : video.status}

@@ -24,6 +24,20 @@ class Video(models.Model):
     duration = models.FloatField(default=0.0)
     width = models.IntegerField(default=0)
     height = models.IntegerField(default=0)
+    
+    # New parsed metadata fields
+    cleaned_title = models.CharField(max_length=255, default="", blank=True)
+    release_year = models.IntegerField(null=True, blank=True)
+    languages = models.JSONField(default=list, blank=True)
+    resolution = models.CharField(max_length=50, default="", blank=True, null=True)
+    quality = models.CharField(max_length=100, default="", blank=True, null=True)
+    codec = models.CharField(max_length=50, default="", blank=True, null=True)
+    season = models.CharField(max_length=50, default="", blank=True, null=True)
+    episode = models.CharField(max_length=50, default="", blank=True, null=True)
+    size = models.CharField(max_length=50, default="", blank=True, null=True)
+    subtitles = models.BooleanField(default=False)
+    is_series = models.BooleanField(default=False)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

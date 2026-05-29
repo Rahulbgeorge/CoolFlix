@@ -1,4 +1,5 @@
 import os
+import shutil
 from django.conf import settings
 import json
 import logging
@@ -9,6 +10,9 @@ from django.shortcuts import render
 from django.utils.text import slugify
 from .models import Setting, Video
 from .transcoder import transcode_queue
+from .infrastructure.cleaner import FileNameCleaner
+from .infrastructure.magnet_parser import MagnetParser
+from .infrastructure.torrent_downloader import TorrentDownloader
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +79,7 @@ def config_api(request):
 
 @csrf_exempt
 def scan_api(request):
-    """Scans the configured source directory recursively for new video files and queues them."""
+    """Scans the configured source directory recursively for new video files, renames them, and queues them."""
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
         
@@ -93,6 +97,8 @@ def scan_api(request):
     video_extensions = ('.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.m4v')
     new_videos_count = 0
     
+    # 1. Walk and collect all video files first to avoid modifying folders while walking
+    video_files = []
     try:
         for root, dirs, files in os.walk(source_loc):
             abs_root = os.path.abspath(root)
@@ -110,40 +116,91 @@ def scan_api(request):
                     
             for file in files:
                 if file.lower().endswith(video_extensions):
-                    original_path = os.path.join(root, file)
-                    
-                    # Check if already in DB
-                    if Video.objects.filter(original_path=original_path).exists():
-                        continue
-                        
-                    # Extract title and generate unique slug
-                    title_without_ext = os.path.splitext(file)[0]
-                    base_slug = slugify(title_without_ext)
-                    if not base_slug:
-                        base_slug = "video"
-                    slug = base_slug
-                    counter = 1
-                    while Video.objects.filter(slug=slug).exists():
-                        slug = f"{base_slug}-{counter}"
-                        counter += 1
-                        
-                    # Create DB record
-                    video = Video.objects.create(
-                        title=title_without_ext,
-                        original_path=original_path,
-                        slug=slug,
-                        status='pending',
-                        progress=0.0
-                    )
-                    
-                    # Put on processing queue
-                    transcode_queue.put(video.id)
-                    new_videos_count += 1
-                    
-        return JsonResponse({'success': True, 'scanned': True, 'new_videos_added': new_videos_count})
+                    video_files.append(os.path.join(root, file))
     except Exception as e:
-        logger.exception("Error scanning directory")
-        return JsonResponse({'error': str(e)}, status=500)
+        logger.exception("Error walking source directory")
+        return JsonResponse({'error': f"Failed to scan directory: {str(e)}"}, status=500)
+        
+    # 2. Process and rename each file, and store in database
+    for filepath in video_files:
+        try:
+            # Clean name and get new filepath target
+            clean_res = FileNameCleaner.clean(filepath, source_loc)
+            
+            # Skip if target file path is already in DB
+            if Video.objects.filter(original_path=clean_res.new_filepath).exists():
+                continue
+                
+            # Skip if current file path is already in DB
+            if Video.objects.filter(original_path=filepath).exists():
+                continue
+
+            # Ensure file still exists at the original location
+            if not os.path.exists(filepath):
+                continue
+                
+            # Rename the file and directory physically on disk
+            final_path = filepath
+            if clean_res.new_filepath != filepath:
+                dest_dir = os.path.dirname(clean_res.new_filepath)
+                os.makedirs(dest_dir, exist_ok=True)
+                
+                try:
+                    os.rename(filepath, clean_res.new_filepath)
+                    final_path = clean_res.new_filepath
+                    
+                    # If the file was in a subfolder and it's now empty, delete it
+                    old_parent = os.path.dirname(filepath)
+                    if os.path.abspath(old_parent) != os.path.abspath(source_loc):
+                        try:
+                            remaining = [f for f in os.listdir(old_parent) if not f.startswith('.')]
+                            if not remaining:
+                                shutil.rmtree(old_parent)
+                        except Exception:
+                            pass
+                except Exception as rename_err:
+                    logger.error(f"Failed to rename file {filepath} to {clean_res.new_filepath}: {rename_err}")
+                    # Fallback to original path if rename fails (e.g. permission/lock issue)
+                    final_path = filepath
+                    
+            # Extract title and generate unique slug
+            base_slug = slugify(clean_res.cleaned_name)
+            if not base_slug:
+                base_slug = "video"
+            slug = base_slug
+            counter = 1
+            while Video.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+                
+            # Create DB record with full metadata
+            video = Video.objects.create(
+                title=clean_res.cleaned_name,
+                original_path=final_path,
+                slug=slug,
+                status='pending',
+                progress=0.0,
+                cleaned_title=clean_res.cleaned_name,
+                release_year=clean_res.year,
+                languages=clean_res.languages,
+                resolution=clean_res.resolution,
+                quality=clean_res.quality,
+                codec=clean_res.codec,
+                season=clean_res.season,
+                episode=clean_res.episode,
+                size=clean_res.size,
+                subtitles=clean_res.subtitles,
+                is_series=clean_res.is_series
+            )
+            
+            # Put on processing queue
+            transcode_queue.put(video.id)
+            new_videos_count += 1
+            
+        except Exception as item_err:
+            logger.error(f"Error processing video item {filepath}: {item_err}")
+            
+    return JsonResponse({'success': True, 'scanned': True, 'new_videos_added': new_videos_count})
 
 def videos_list_api(request):
     """Returns list of all videos with metadata and endpoints."""
@@ -174,6 +231,20 @@ def videos_list_api(request):
             'error_message': v.error_message,
             'created_at': v.created_at.isoformat(),
             'updated_at': v.updated_at.isoformat(),
+            
+            # New parsed metadata fields
+            'original_path': v.original_path,
+            'cleaned_title': v.cleaned_title,
+            'year': v.release_year,
+            'languages': v.languages,
+            'resolution': v.resolution,
+            'quality': v.quality,
+            'codec': v.codec,
+            'season': v.season,
+            'episode': v.episode,
+            'size': v.size,
+            'subtitles': v.subtitles,
+            'is_series': v.is_series,
         })
         
     return JsonResponse({'videos': result})
@@ -229,6 +300,20 @@ def video_detail_api(request, video_id):
         'streams': streams,
         'error_message': v.error_message,
         'created_at': v.created_at.isoformat(),
+        
+        # New parsed metadata fields
+        'original_path': v.original_path,
+        'cleaned_title': v.cleaned_title,
+        'year': v.release_year,
+        'languages': v.languages,
+        'resolution': v.resolution,
+        'quality': v.quality,
+        'codec': v.codec,
+        'season': v.season,
+        'episode': v.episode,
+        'size': v.size,
+        'subtitles': v.subtitles,
+        'is_series': v.is_series,
     })
 
 @csrf_exempt
@@ -285,3 +370,154 @@ def serve_streamable_file(request, relative_path):
     response = FileResponse(open(file_path, 'rb'), content_type=content_type)
     response["Access-Control-Allow-Origin"] = "*"
     return response
+
+@csrf_exempt
+def parse_url_api(request):
+    """POST endpoint to scrape magnet links and titles from a webpage URL."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+    try:
+        data = json.loads(request.body)
+        url = data.get('url', '').strip()
+        
+        if not url:
+            return JsonResponse({'error': 'URL cannot be empty'}, status=400)
+            
+        if not (url.startswith('http://') or url.startswith('https://')):
+            return JsonResponse({'error': 'Invalid URL scheme. Must start with http:// or https://'}, status=400)
+            
+        # Parse the page
+        parser_output = MagnetParser.parse_page(url)
+        
+        return JsonResponse({
+            'success': True,
+            'page_title': parser_output.page_title,
+            'magnets': [m.model_dump() for m in parser_output.magnets]
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+    except Exception as e:
+        logger.exception("Error parsing webpage URL")
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def download_magnet_api(request):
+    """POST endpoint to trigger transmission-remote background download for a magnet link."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+    try:
+        data = json.loads(request.body)
+        magnet_link = data.get('magnet_link', '').strip()
+        
+        if not magnet_link:
+            return JsonResponse({'error': 'Magnet link cannot be empty'}, status=400)
+            
+        if not magnet_link.startswith('magnet:'):
+            return JsonResponse({'error': 'Invalid magnet link format'}, status=400)
+            
+        # Fetch the configured source directory as write location override if exists
+        source_loc = get_setting('source_loc')
+        custom_dir = os.path.abspath(source_loc) if (source_loc and os.path.exists(source_loc)) else None
+        
+        result = TorrentDownloader.download(magnet_link, custom_dir=custom_dir)
+        
+        if result.success:
+            return JsonResponse({
+                'success': True,
+                'message': result.message,
+                'cmd': result.cmd,
+                'download_dir': result.download_dir
+            })
+        else:
+            status_code = 400
+            # If the command wasn't found, return 501
+            if "not found" in (result.error or "").lower() or "missing" in (result.message or "").lower():
+                status_code = 501
+            return JsonResponse({
+                'success': False,
+                'error': result.error or result.message,
+                'cmd': result.cmd
+            }, status=status_code)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+    except Exception as e:
+        logger.exception("Error executing torrent download")
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def download_status_api(request):
+    """GET endpoint to fetch active downloads status from Transmission daemon."""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+    try:
+        downloads = TorrentDownloader.list_downloads()
+        return JsonResponse({
+            'success': True,
+            'downloads': [d.model_dump() for d in downloads]
+        })
+    except FileNotFoundError:
+        return JsonResponse({
+            'success': False,
+            'error': 'transmission-remote command not found. Cannot query active download progress.'
+        }, status=501)
+    except Exception as e:
+        logger.exception("Error checking active torrent status")
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def delete_torrent_api(request):
+    """POST endpoint to remove or delete a torrent from Transmission daemon."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+    try:
+        data = json.loads(request.body)
+        torrent_id = data.get('torrent_id', '').strip()
+        delete_files = bool(data.get('delete_files', False))
+        
+        if not torrent_id:
+            return JsonResponse({'error': 'Torrent ID cannot be empty'}, status=400)
+            
+        result = TorrentDownloader.remove(torrent_id, delete_files=delete_files)
+        
+        if result.success:
+            return JsonResponse({
+                'success': True,
+                'message': result.message,
+                'cmd': result.cmd
+            })
+        else:
+            status_code = 400
+            if "not found" in (result.error or "").lower() or "missing" in (result.message or "").lower():
+                status_code = 501
+            return JsonResponse({
+                'success': False,
+                'error': result.error or result.message,
+                'cmd': result.cmd
+            }, status=status_code)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+    except Exception as e:
+        logger.exception("Error removing torrent")
+        return JsonResponse({'error': str(e)}, status=500)
+
+def serve_frontend(request, path=''):
+    """Serves the entrypoint index.html for the built frontend from MEDIA_ROOT/frontend/index.html."""
+    frontend_dir = os.path.join(settings.MEDIA_ROOT, 'frontend')
+    index_path = os.path.join(frontend_dir, 'index.html')
+    
+    if not os.path.exists(index_path):
+        return HttpResponse(
+            "Frontend not compiled. Please run the install/build script to compile the frontend to /media/frontend.",
+            status=404
+        )
+        
+    with open(index_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    return HttpResponse(content, content_type='text/html')
