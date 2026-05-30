@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 def run_transcoder_cron():
     """
     Decoupled cron task that processes video tasks in order of priority:
-    1. HLS streaming generation for ALL pending videos first.
-    2. Sprite sheet generation for videos with completed HLS.
-    3. Preview clip/thumbnail generation for videos with completed HLS & sprite.
+    1. Sprite sheet generation for ALL pending videos first (so scrubbing is ready).
+    2. Preview clip/thumbnail generation (making videos immediately playable via MP4).
+    3. HLS streaming generation on the backburner.
     """
     # Determine the project root to store the lock file securely
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -31,55 +31,26 @@ def run_transcoder_cron():
     
     # 0. Recover stalled jobs on startup
     try:
-        Video.objects.filter(status='processing', hls_status='processing').update(hls_status='pending', status='pending', progress=0.0)
-        Video.objects.filter(status='processing', sprite_status='processing').update(sprite_status='pending')
-        Video.objects.filter(status='processing', preview_status='processing').update(preview_status='pending')
+        Video.objects.filter(hls_status='processing').update(hls_status='pending')
+        Video.objects.filter(sprite_status='processing').update(sprite_status='pending')
+        Video.objects.filter(preview_status='processing').update(preview_status='pending')
+        Video.objects.filter(status='processing').update(status='pending')
     except Exception as e:
         logger.error(f"Error resetting stalled tasks: {e}")
 
-    # 1. First Priority: Process HLS for all videos where hls_status is 'pending'
+    # 1. First Priority: Process sprite sheets for any video where sprite_status is 'pending'
     while True:
         video_id = None
         try:
             with transaction.atomic():
                 video = Video.objects.filter(
-                    status='pending', 
-                    hls_status='pending'
-                ).order_by('created_at').select_for_update().first()
+                    sprite_status='pending'
+                ).exclude(status='failed').order_by('created_at').select_for_update().first()
                 
                 if video:
                     video.status = 'processing'
-                    video.hls_status = 'processing'
-                    video.progress = 5.0
-                    video.save()
-                    video_id = video.id
-        except Exception as e:
-            logger.error(f"Error fetching pending HLS task: {e}")
-            break
-            
-        if not video_id:
-            break
-            
-        try:
-            logger.info(f"Running HLS generation for video ID {video_id}...")
-            VideoProcessor.process_hls_only(video_id)
-        except Exception as e:
-            logger.error(f"Failed HLS generation for video ID {video_id}: {e}")
-
-    # 2. Second Priority: Process sprite sheets for videos where hls_status='completed' and sprite_status='pending'
-    while True:
-        video_id = None
-        try:
-            with transaction.atomic():
-                video = Video.objects.filter(
-                    status='processing', 
-                    hls_status='completed', 
-                    sprite_status='pending'
-                ).order_by('created_at').select_for_update().first()
-                
-                if video:
                     video.sprite_status = 'processing'
-                    video.progress = 80.0
+                    video.progress = 5.0
                     video.save()
                     video_id = video.id
         except Exception as e:
@@ -95,21 +66,20 @@ def run_transcoder_cron():
         except Exception as e:
             logger.error(f"Failed Sprite sheet generation for video ID {video_id}: {e}")
 
-    # 3. Third Priority: Process previews for videos where hls_status='completed', sprite_status='completed', preview_status='pending'
+    # 2. Second Priority: Process previews/thumbnails for videos where sprite_status='completed' and preview_status='pending'
     while True:
         video_id = None
         try:
             with transaction.atomic():
                 video = Video.objects.filter(
-                    status='processing', 
-                    hls_status='completed', 
-                    sprite_status='completed', 
+                    sprite_status='completed',
                     preview_status='pending'
-                ).order_by('created_at').select_for_update().first()
+                ).exclude(status='failed').order_by('created_at').select_for_update().first()
                 
                 if video:
+                    video.status = 'processing'
                     video.preview_status = 'processing'
-                    video.progress = 90.0
+                    video.progress = 35.0
                     video.save()
                     video_id = video.id
         except Exception as e:
@@ -124,5 +94,35 @@ def run_transcoder_cron():
             VideoProcessor.process_preview_only(video_id)
         except Exception as e:
             logger.error(f"Failed Preview generation for video ID {video_id}: {e}")
+
+    # 3. Third Priority: Process HLS transcoding for videos where sprite/preview are done and hls is pending
+    while True:
+        video_id = None
+        try:
+            with transaction.atomic():
+                video = Video.objects.filter(
+                    hls_status='pending',
+                    hls_required=True,
+                    sprite_status='completed',
+                    preview_status='completed'
+                ).exclude(status='failed').order_by('created_at').select_for_update().first()
+                
+                if video:
+                    video.hls_status = 'processing'
+                    video.status = 'processing'
+                    video.save()
+                    video_id = video.id
+        except Exception as e:
+            logger.error(f"Error fetching pending HLS task: {e}")
+            break
+            
+        if not video_id:
+            break
+            
+        try:
+            logger.info(f"Running HLS generation for video ID {video_id}...")
+            VideoProcessor.process_hls_only(video_id)
+        except Exception as e:
+            logger.error(f"Failed HLS generation for video ID {video_id}: {e}")
 
     logger.info("Finished prioritized transcoder cycle.")

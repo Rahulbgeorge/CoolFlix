@@ -50,6 +50,7 @@ class Video(models.Model):
     size = models.CharField(max_length=50, default="", blank=True, null=True)
     subtitles = models.BooleanField(default=False)
     is_series = models.BooleanField(default=False)
+    hls_required = models.BooleanField(default=False)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -41,7 +41,7 @@ class FFmpegTranscoder:
             
             # Find video stream
             video_stream = next((stream for stream in data.get('streams', []) if stream.get('codec_type') == 'video'), None)
-            audio_stream = next((stream for stream in data.get('streams', []) if stream.get('codec_type') == 'audio'), None)
+            audio_streams = [stream for stream in data.get('streams', []) if stream.get('codec_type') == 'audio']
             
             duration = float(data.get('format', {}).get('duration', 0.0))
             if duration <= 0 and video_stream:
@@ -49,9 +49,22 @@ class FFmpegTranscoder:
                 
             width = int(video_stream.get('width', 0)) if video_stream else 0
             height = int(video_stream.get('height', 0)) if video_stream else 0
-            has_audio = audio_stream is not None
+            has_audio = len(audio_streams) > 0
             video_codec = video_stream.get('codec_name', '').lower() if video_stream else ''
-            audio_codec = audio_stream.get('codec_name', '').lower() if audio_stream else ''
+            audio_codec = audio_streams[0].get('codec_name', '').lower() if has_audio else ''
+            
+            audio_tracks = []
+            for idx, stream in enumerate(audio_streams):
+                tags = stream.get('tags', {})
+                lang = tags.get('language', 'und')
+                title = tags.get('title', f"Audio Track {idx + 1}")
+                audio_tracks.append({
+                    'index': idx,
+                    'stream_index': stream.get('index'),
+                    'codec': stream.get('codec_name', '').lower(),
+                    'language': lang,
+                    'title': title
+                })
             
             return {
                 'duration': duration,
@@ -59,7 +72,8 @@ class FFmpegTranscoder:
                 'height': height,
                 'has_audio': has_audio,
                 'video_codec': video_codec,
-                'audio_codec': audio_codec
+                'audio_codec': audio_codec,
+                'audio_tracks': audio_tracks
             }
         except Exception as e:
             logger.error(f"Failed to probe video {video_path}: {e}")
@@ -80,6 +94,7 @@ class FFmpegTranscoder:
             '-q:v', '2',
             thumbnail_path
         ]
+        print(f"Executing FFmpeg command (Thumbnail): {' '.join(cmd)}")
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if result.returncode != 0:
             logger.error(f"Failed to generate thumbnail: {result.stderr.decode()}")
@@ -107,6 +122,7 @@ class FFmpegTranscoder:
             '-level', '4.0',
             preview_path
         ]
+        print(f"Executing FFmpeg command (Preview): {' '.join(cmd)}")
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if result.returncode != 0:
             logger.error(f"Failed to generate preview: {result.stderr.decode()}")
@@ -134,6 +150,7 @@ class FFmpegTranscoder:
             '-vsync', 'vfr',
             sprite_template
         ]
+        print(f"Executing FFmpeg command (Sprite Sheet): {' '.join(cmd)}")
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if result.returncode != 0:
             logger.error(f"Failed to generate sprite sheets: {result.stderr.decode()}")
@@ -171,7 +188,9 @@ class FFmpegTranscoder:
 
     @staticmethod
     def _execute_ffmpeg_command(cmd: List[str], duration: float, progress_callback: Optional[Callable[[float], None]]) -> None:
-        logger.info(f"Executing FFmpeg command: {' '.join(cmd)}")
+        cmd_str = ' '.join(cmd)
+        print(f"Executing FFmpeg command (HLS Transcode): {cmd_str}")
+        logger.info(f"Executing FFmpeg command: {cmd_str}")
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -210,10 +229,11 @@ class FFmpegTranscoder:
         progress_callback: Optional[Callable[[float], None]] = None,
         target_quality: str = 'original',
         video_codec: str = '',
-        audio_codec: str = ''
+        audio_codec: str = '',
+        audio_tracks: Optional[List[Dict[str, Any]]] = None
     ) -> List[Dict[str, Any]]:
         """
-        Transcodes or copies a video file into a streamable single-variant HLS stream.
+        Transcodes or copies a video file into a streamable adaptive HLS stream with multi-audio support.
         Optimally uses hardware GPU/CUDA acceleration if available and falls back to CPU.
         """
         if not video_codec or not audio_codec:
@@ -221,29 +241,54 @@ class FFmpegTranscoder:
                 info = cls.probe_video(video_path)
                 video_codec = info.get('video_codec', '')
                 audio_codec = info.get('audio_codec', '')
+                if audio_tracks is None:
+                    audio_tracks = info.get('audio_tracks', [])
             except Exception:
                 pass
+
+        if audio_tracks is None:
+            if has_audio:
+                audio_tracks = [{
+                    'index': 0,
+                    'language': 'und',
+                    'title': 'Audio Track 1',
+                    'codec': audio_codec or 'aac'
+                }]
+            else:
+                audio_tracks = []
 
         streams_dir = os.path.join(target_dir, 'streams')
         if os.path.exists(streams_dir):
             shutil.rmtree(streams_dir)
         os.makedirs(streams_dir, exist_ok=True)
-        os.makedirs(os.path.join(streams_dir, 'stream_0'), exist_ok=True)
+        
+        num_streams = 1 + len(audio_tracks) if audio_tracks else 1
+        for i in range(num_streams):
+            os.makedirs(os.path.join(streams_dir, f'stream_{i}'), exist_ok=True)
 
-        # 1. Determine if we can do Stream Copy (only when target is original, video is h264, audio is aac or absent)
+        # 1. Determine if we can do Stream Copy
         can_copy_video = (target_quality == 'original' and video_codec == 'h264')
-        can_copy_audio = (target_quality == 'original' and (audio_codec == 'aac' or not has_audio))
+        all_audio_aac = all(track.get('codec') == 'aac' for track in audio_tracks)
+        can_copy_audio = (target_quality == 'original' and (all_audio_aac or not audio_tracks))
         is_stream_copy = can_copy_video and can_copy_audio
 
         if is_stream_copy:
-            logger.info("Codes are compatible (H264/AAC). Initiating stream copying...")
+            logger.info("Codecs are compatible (H264/AAC). Initiating stream copying...")
             cmd = ['ffmpeg', '-y', '-i', video_path, '-progress', '-']
             cmd += ['-map', '0:v:0', '-c:v', 'copy']
-            if has_audio:
-                cmd += ['-map', '0:a:0', '-c:a', 'copy']
-                var_stream_map = "v:0,a:0"
+            
+            var_stream_map_parts = []
+            if audio_tracks:
+                var_stream_map_parts.append("v:0,agroup:audios")
+                for idx, track in enumerate(audio_tracks):
+                    cmd += ['-map', f'0:a:{idx}', f'-c:a:{idx}', 'copy']
+                    lang = track.get('language', 'und')
+                    title = track.get('title', f"Audio_{idx + 1}").replace(" ", "_")
+                    var_stream_map_parts.append(f"a:{idx},agroup:audios,language:{lang},name:{title}")
             else:
-                var_stream_map = "v:0"
+                var_stream_map_parts.append("v:0")
+                
+            var_stream_map = " ".join(var_stream_map_parts)
 
             cmd += [
                 '-f', 'hls',
@@ -317,18 +362,25 @@ class FFmpegTranscoder:
             gpu_cmd += ['-maxrate:v', f"{int(target_bv.replace('k', '')) * 1.1:.0f}k"]
             gpu_cmd += ['-bufsize:v', f"{int(target_bv.replace('k', '')) * 1.5:.0f}k"]
             
-            if has_audio:
-                gpu_cmd += ['-map', '0:a:0', '-c:a', 'aac', '-b:a', target_ba]
-                var_stream_map = "v:0,a:0"
+            gpu_var_stream_map_parts = []
+            if audio_tracks:
+                gpu_var_stream_map_parts.append("v:0,agroup:audios")
+                for idx, track in enumerate(audio_tracks):
+                    gpu_cmd += ['-map', f'0:a:{idx}', f'-c:a:{idx}', 'aac', f'-b:a:{idx}', target_ba]
+                    lang = track.get('language', 'und')
+                    title = track.get('title', f"Audio_{idx + 1}").replace(" ", "_")
+                    gpu_var_stream_map_parts.append(f"a:{idx},agroup:audios,language:{lang},name:{title}")
             else:
-                var_stream_map = "v:0"
+                gpu_var_stream_map_parts.append("v:0")
                 
+            gpu_var_stream_map = " ".join(gpu_var_stream_map_parts)
+            
             gpu_cmd += [
                 '-f', 'hls',
                 '-hls_time', '6',
                 '-hls_playlist_type', 'event',
                 '-master_pl_name', 'master.m3u8',
-                '-var_stream_map', var_stream_map,
+                '-var_stream_map', gpu_var_stream_map,
                 '-hls_segment_filename', os.path.join(streams_dir, 'stream_%v', 'data%03d.ts'),
                 os.path.join(streams_dir, 'stream_%v', 'playlist.m3u8')
             ]
@@ -348,18 +400,25 @@ class FFmpegTranscoder:
         cpu_cmd += ['-maxrate:v', f"{int(target_bv.replace('k', '')) * 1.1:.0f}k"]
         cpu_cmd += ['-bufsize:v', f"{int(target_bv.replace('k', '')) * 1.5:.0f}k"]
         
-        if has_audio:
-            cpu_cmd += ['-map', '0:a:0', '-c:a', 'aac', '-b:a', target_ba]
-            var_stream_map = "v:0,a:0"
+        cpu_var_stream_map_parts = []
+        if audio_tracks:
+            cpu_var_stream_map_parts.append("v:0,agroup:audios")
+            for idx, track in enumerate(audio_tracks):
+                cpu_cmd += ['-map', f'0:a:{idx}', f'-c:a:{idx}', 'aac', f'-b:a:{idx}', target_ba]
+                lang = track.get('language', 'und')
+                title = track.get('title', f"Audio_{idx + 1}").replace(" ", "_")
+                cpu_var_stream_map_parts.append(f"a:{idx},agroup:audios,language:{lang},name:{title}")
         else:
-            var_stream_map = "v:0"
+            cpu_var_stream_map_parts.append("v:0")
             
+        cpu_var_stream_map = " ".join(cpu_var_stream_map_parts)
+        
         cpu_cmd += [
             '-f', 'hls',
             '-hls_time', '6',
             '-hls_playlist_type', 'event',
             '-master_pl_name', 'master.m3u8',
-            '-var_stream_map', var_stream_map,
+            '-var_stream_map', cpu_var_stream_map,
             '-hls_segment_filename', os.path.join(streams_dir, 'stream_%v', 'data%03d.ts'),
             os.path.join(streams_dir, 'stream_%v', 'playlist.m3u8')
         ]
@@ -375,7 +434,8 @@ class FFmpegTranscoder:
                 if os.path.exists(streams_dir):
                     shutil.rmtree(streams_dir)
                 os.makedirs(streams_dir, exist_ok=True)
-                os.makedirs(os.path.join(streams_dir, 'stream_0'), exist_ok=True)
+                for i in range(num_streams):
+                    os.makedirs(os.path.join(streams_dir, f'stream_{i}'), exist_ok=True)
                 cls._execute_ffmpeg_command(cpu_cmd, duration, progress_callback)
         else:
             logger.info("GPU/CUDA acceleration not available. Running CPU transcoding...")

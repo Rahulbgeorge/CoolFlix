@@ -220,10 +220,11 @@ def videos_list_api(request):
     host = request.build_absolute_uri('/')[:-1]
     
     for v in videos:
-        # Check if assets are available
-        thumbnail_url = f"{host}/media/streamable/{v.slug}/thumbnail.jpg" if v.status == 'completed' else None
-        preview_url = f"{host}/media/streamable/{v.slug}/preview.mp4" if v.status == 'completed' else None
-        master_playlist_url = f"{host}/media/streamable/{v.slug}/streams/master.m3u8" if v.status == 'completed' else None
+        # Check if assets are available based on stage completion
+        thumbnail_url = f"{host}/media/streamable/{v.slug}/thumbnail.jpg" if v.preview_status == 'completed' else None
+        preview_url = f"{host}/media/streamable/{v.slug}/preview.mp4" if v.preview_status == 'completed' else None
+        master_playlist_url = f"{host}/media/streamable/{v.slug}/streams/master.m3u8" if v.hls_status == 'completed' else None
+        mp4_stream_url = f"{host}/api/videos/{v.id}/mp4_stream"
         
         result.append({
             'id': v.id,
@@ -237,6 +238,7 @@ def videos_list_api(request):
             'thumbnail_url': thumbnail_url,
             'preview_url': preview_url,
             'master_playlist_url': master_playlist_url,
+            'mp4_stream_url': mp4_stream_url,
             'error_message': v.error_message,
             'created_at': v.created_at.isoformat(),
             'updated_at': v.updated_at.isoformat(),
@@ -258,23 +260,59 @@ def videos_list_api(request):
             'hls_status': v.hls_status,
             'sprite_status': v.sprite_status,
             'preview_status': v.preview_status,
+            'hls_required': v.hls_required,
         })
         
     return JsonResponse({'videos': result})
 
+@csrf_exempt
 def video_detail_api(request, video_id):
-    """Returns detailed video object, including available quality streams."""
+    """GET to retrieve detailed video metadata. POST/PATCH to update settings (hls_required, transcode_target)."""
     try:
         v = Video.objects.get(id=video_id)
     except Video.DoesNotExist:
         return JsonResponse({'error': 'Video not found'}, status=404)
+        
+    if request.method in ('POST', 'PATCH'):
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            return JsonResponse({'error': 'Invalid JSON request body'}, status=400)
+            
+        hls_req = data.get('hls_required')
+        if hls_req is not None:
+            hls_req = bool(hls_req)
+            if hls_req and not v.hls_required:
+                v.hls_required = True
+                if v.hls_status in ('skipped', 'pending', 'failed'):
+                    v.hls_status = 'pending'
+                    if v.progress == 100.0 or v.status == 'completed':
+                        v.progress = 66.7
+                        v.status = 'processing'
+            elif not hls_req and v.hls_required:
+                v.hls_required = False
+                if v.hls_status in ('pending', 'processing'):
+                    v.hls_status = 'skipped'
+                    v.progress = 100.0
+                    v.status = 'completed'
+                    
+        target = data.get('transcode_target')
+        if target is not None:
+            if target in ['original', '1080p', '720p', '480p']:
+                v.transcode_target = target
+                if v.hls_required and v.hls_status in ('completed', 'skipped', 'failed'):
+                    v.hls_status = 'pending'
+                    v.progress = 66.7
+                    v.status = 'processing'
+                    
+        v.save()
         
     host = request.build_absolute_uri('/')[:-1]
     
     # Read stream metadata if available
     streams = []
     sprite_info = None
-    if v.status == 'completed':
+    if v.hls_status == 'completed':
         streams_meta_path = os.path.join(settings.MEDIA_ROOT, 'streamable', v.slug, 'streams', 'metadata.json')
         if os.path.exists(streams_meta_path):
             try:
@@ -283,6 +321,7 @@ def video_detail_api(request, video_id):
             except Exception:
                 pass
                 
+    if v.sprite_status == 'completed':
         sprite_meta_path = os.path.join(settings.MEDIA_ROOT, 'streamable', v.slug, 'sprite_info.json')
         if os.path.exists(sprite_meta_path):
             try:
@@ -291,10 +330,11 @@ def video_detail_api(request, video_id):
             except Exception:
                 pass
                 
-    thumbnail_url = f"{host}/media/streamable/{v.slug}/thumbnail.jpg" if v.status == 'completed' else None
-    preview_url = f"{host}/media/streamable/{v.slug}/preview.mp4" if v.status == 'completed' else None
-    master_playlist_url = f"{host}/media/streamable/{v.slug}/streams/master.m3u8" if v.status == 'completed' else None
-    sprite_url_template = f"{host}/media/streamable/{v.slug}/sprite_%03d.jpg" if v.status == 'completed' else None
+    thumbnail_url = f"{host}/media/streamable/{v.slug}/thumbnail.jpg" if v.preview_status == 'completed' else None
+    preview_url = f"{host}/media/streamable/{v.slug}/preview.mp4" if v.preview_status == 'completed' else None
+    master_playlist_url = f"{host}/media/streamable/{v.slug}/streams/master.m3u8" if v.hls_status == 'completed' else None
+    sprite_url_template = f"{host}/media/streamable/{v.slug}/sprite_%03d.jpg" if v.sprite_status == 'completed' else None
+    mp4_stream_url = f"{host}/api/videos/{v.id}/mp4_stream"
     
     return JsonResponse({
         'id': v.id,
@@ -311,6 +351,7 @@ def video_detail_api(request, video_id):
         'sprite_url_template': sprite_url_template,
         'sprite_info': sprite_info,
         'streams': streams,
+        'mp4_stream_url': mp4_stream_url,
         'error_message': v.error_message,
         'created_at': v.created_at.isoformat(),
         
@@ -331,6 +372,7 @@ def video_detail_api(request, video_id):
         'hls_status': v.hls_status,
         'sprite_status': v.sprite_status,
         'preview_status': v.preview_status,
+        'hls_required': v.hls_required,
     })
 
 @csrf_exempt
@@ -553,3 +595,29 @@ def serve_frontend(request, path=''):
     with open(index_path, 'r', encoding='utf-8') as f:
         content = f.read()
     return HttpResponse(content, content_type='text/html')
+
+def video_mp4_stream_api(request, video_id):
+    """Serves the original video file directly via Nginx's X-Accel-Redirect header or falls back to Django FileResponse."""
+    try:
+        v = Video.objects.get(id=video_id)
+    except Video.DoesNotExist:
+        return JsonResponse({'error': 'Video not found'}, status=404)
+        
+    if not os.path.exists(v.original_path):
+        return JsonResponse({'error': f'Original video file not found on disk: {v.original_path}'}, status=404)
+        
+    # Check if Nginx proxied the request (usually HTTP_X_REAL_IP or HTTP_X_FORWARDED_FOR is set by Nginx)
+    is_nginx = 'HTTP_X_REAL_IP' in request.META or 'HTTP_X_FORWARDED_FOR' in request.META
+    
+    if is_nginx:
+        # Request is fronted by Nginx: offload streaming to Nginx using X-Accel-Redirect
+        # We prepend /original_videos to map to the 'alias /;' location in Nginx
+        response = HttpResponse()
+        response['X-Accel-Redirect'] = f'/original_videos{v.original_path}'
+        response['Content-Type'] = 'video/mp4'
+        return response
+    else:
+        # Django fallback (for direct development runs on port 8001 without Nginx)
+        response = FileResponse(open(v.original_path, 'rb'), content_type='video/mp4')
+        return response
+

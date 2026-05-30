@@ -31,17 +31,19 @@ class DownloadResult(BaseModel):
 class TorrentDownloader:
     @classmethod
     def get_download_dir(cls) -> str:
-        """Retrieves the download directory, preferring settings first, then database config."""
-        # 1. Try to get hardcoded setting from Django settings
-        download_dir = getattr(settings, 'TORRENT_DOWNLOAD_DIR', None)
+        download_dir = None
         
-        # 2. Try to get configured source_loc from database
+        # 1. Try to get configured source_loc from database (configured scan path)
         try:
             db_source = Setting.objects.get(key='source_loc').value
             if db_source and os.path.exists(db_source):
                 download_dir = db_source
         except Exception:
             pass
+            
+        # 2. Try to get hardcoded setting from Django settings as fallback
+        if not download_dir:
+            download_dir = getattr(settings, 'TORRENT_DOWNLOAD_DIR', None)
             
         # 3. Fallback to settings.MEDIA_ROOT
         if not download_dir:

@@ -79,7 +79,7 @@ class FFmpegTranscoderTests(SimpleTestCase):
         args, kwargs = mock_popen.call_args
         cmd_str = " ".join(args[0])
         self.assertIn('-c:v copy', cmd_str)
-        self.assertIn('-c:a copy', cmd_str)
+        self.assertIn('-c:a:0 copy', cmd_str)
 
     @patch('subprocess.Popen')
     @patch('api.infrastructure.transcoder.FFmpegTranscoder.detect_gpu_support')
@@ -161,7 +161,8 @@ class RunTranscoderCommandTests(TestCase):
             status="pending",
             hls_status="pending",
             sprite_status="pending",
-            preview_status="pending"
+            preview_status="pending",
+            hls_required=True
         )
         v2 = Video.objects.create(
             title="Video 2",
@@ -170,31 +171,32 @@ class RunTranscoderCommandTests(TestCase):
             status="pending",
             hls_status="pending",
             sprite_status="pending",
-            preview_status="pending"
+            preview_status="pending",
+            hls_required=True
         )
-
-        # Mock HLS side effect: complete HLS stage
-        def complete_hls(vid_id):
-            video = Video.objects.get(id=vid_id)
-            video.hls_status = 'completed'
-            video.status = 'processing'
-            video.save()
-        mock_hls.side_effect = complete_hls
 
         # Mock Sprite side effect: complete Sprite stage
         def complete_sprite(vid_id):
             video = Video.objects.get(id=vid_id)
             video.sprite_status = 'completed'
+            video.status = 'processing'
             video.save()
         mock_sprite.side_effect = complete_sprite
 
-        # Mock Preview side effect: complete overall
+        # Mock Preview side effect: complete Preview stage and set overall status to completed (playable)
         def complete_preview(vid_id):
             video = Video.objects.get(id=vid_id)
             video.preview_status = 'completed'
             video.status = 'completed'
             video.save()
         mock_preview.side_effect = complete_preview
+
+        # Mock HLS side effect: complete HLS stage
+        def complete_hls(vid_id):
+            video = Video.objects.get(id=vid_id)
+            video.hls_status = 'completed'
+            video.save()
+        mock_hls.side_effect = complete_hls
 
         # Run the transcoder cron command
         call_command('run_transcoder')
@@ -214,3 +216,54 @@ class RunTranscoderCommandTests(TestCase):
         self.assertEqual(mock_preview.call_count, 2)
         mock_preview.assert_any_call(v1.id)
         mock_preview.assert_any_call(v2.id)
+
+    @patch('api.transcoder.VideoProcessor.process_hls_only')
+    @patch('api.transcoder.VideoProcessor.process_sprite_only')
+    @patch('api.transcoder.VideoProcessor.process_preview_only')
+    def test_run_transcoder_hls_skipped_by_default(self, mock_preview, mock_sprite, mock_hls):
+        # Create a pending video with hls_required=False (default)
+        v = Video.objects.create(
+            title="Video Default",
+            original_path="/path/default.mp4",
+            slug="default-vid",
+            status="pending",
+            hls_status="pending",
+            sprite_status="pending",
+            preview_status="pending",
+            hls_required=False
+        )
+
+        # Mock Sprite: complete Sprite stage and set progress
+        def complete_sprite(vid_id):
+            video = Video.objects.get(id=vid_id)
+            video.sprite_status = 'completed'
+            video.progress = 50.0
+            video.save()
+        mock_sprite.side_effect = complete_sprite
+
+        # Mock Preview: complete Preview stage, set progress, hls_status='skipped', status='completed'
+        def complete_preview(vid_id):
+            video = Video.objects.get(id=vid_id)
+            video.preview_status = 'completed'
+            video.hls_status = 'skipped'
+            video.status = 'completed'
+            video.progress = 100.0
+            video.save()
+        mock_preview.side_effect = complete_preview
+
+        # Run the transcoder cron command
+        call_command('run_transcoder')
+
+        # Assertions:
+        # Sprite sheet and preview generated
+        self.assertEqual(mock_sprite.call_count, 1)
+        self.assertEqual(mock_preview.call_count, 1)
+        # HLS is skipped, so mock_hls must not be called
+        self.assertEqual(mock_hls.call_count, 0)
+
+        # Retrieve and check DB values
+        v.refresh_from_db()
+        self.assertEqual(v.status, 'completed')
+        self.assertEqual(v.hls_status, 'skipped')
+        self.assertEqual(v.progress, 100.0)
+

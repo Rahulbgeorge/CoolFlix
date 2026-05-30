@@ -40,7 +40,7 @@ export default function App() {
   // Poll for transcoding status in the background if there are pending or processing items
   useEffect(() => {
     const hasActiveTranscodes = videos.some(
-      (v) => v.status === 'processing' || v.status === 'pending'
+      (v) => v.status === 'processing' || v.status === 'pending' || v.hls_status === 'processing' || v.hls_status === 'pending'
     );
 
     if (!hasActiveTranscodes) return;

@@ -3,7 +3,7 @@ import Hls from 'hls.js';
 import {
   Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX,
   Maximize, Minimize, ArrowLeft, Gauge, Activity,
-  RefreshCw, AlertCircle
+  RefreshCw, AlertCircle, Globe
 } from 'lucide-react';
 
 export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
@@ -21,6 +21,11 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
   // Popover menus state
   const [showQualityMenu, setShowQualityMenu] = useState(false);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  
+  // Audio tracks state
+  const [audioTracks, setAudioTracks] = useState([]);
+  const [currentAudioTrackIdx, setCurrentAudioTrackIdx] = useState(-1);
   
   // Custom video quality and speed tracking
   const [qualities, setQualities] = useState([]); // [{ index: number, label: string }]
@@ -77,60 +82,123 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
 
     const videoElement = videoRef.current;
 
-    if (Hls.isSupported()) {
-      const hls = new Hls({
-        maxBufferLength: 30,
-        enableWorker: true
-      });
-      hls.loadSource(videoData.master_playlist_url);
-      hls.attachMedia(videoElement);
-      hlsRef.current = hls;
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        // Collect HLS streams/resolutions
-        const levels = hls.levels.map((level, index) => {
-          const height = level.height || (level.attrs && level.attrs.RESOLUTION ? level.attrs.RESOLUTION.split('x')[1] : null);
-          return {
-            index,
-            label: height ? `${height}p` : `Stream ${index + 1}`
-          };
-        });
-        setQualities([{ index: -1, label: 'Auto' }, ...levels]);
-        setCurrentQualityIdx(hls.currentLevel);
-        
-        // Auto play on load
-        videoElement.play().catch(() => {});
-      });
-
-      hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
-        // Keep active level highlight in sync
-        if (hls.autoLevelEnabled) {
-          setCurrentQualityIdx(-1);
-        } else {
-          setCurrentQualityIdx(data.level);
+    const handleLoadedMetadata = () => {
+      if (videoElement.audioTracks) {
+        const tracks = [];
+        for (let i = 0; i < videoElement.audioTracks.length; i++) {
+          const track = videoElement.audioTracks[i];
+          tracks.push({
+            index: i,
+            label: track.label || track.language || `Track ${i + 1}`,
+            lang: track.language,
+            enabled: track.enabled
+          });
         }
-      });
+        setAudioTracks(tracks);
+        const activeIdx = tracks.findIndex(t => t.enabled);
+        setCurrentAudioTrackIdx(activeIdx !== -1 ? activeIdx : 0);
+      }
+    };
 
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              hls.recoverMediaError();
-              break;
-            default:
-              hls.destroy();
-              break;
-          }
-        }
-      });
-    } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-      // Safari Native Playback
-      videoElement.src = videoData.master_playlist_url;
+    const useDirectMp4 = videoData.hls_status !== 'completed';
+
+    if (useDirectMp4) {
+      // Fallback: Direct MP4 streaming via Nginx / Django
+      videoElement.src = videoData.mp4_stream_url;
+      videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
       videoElement.play().catch(() => {});
+      
+      // Hide qualities selection (single file stream)
+      setQualities([]);
+      setCurrentQualityIdx(-1);
+    } else {
+      // Adaptive HLS streaming
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          maxBufferLength: 30,
+          enableWorker: true
+        });
+        hls.loadSource(videoData.master_playlist_url);
+        hls.attachMedia(videoElement);
+        hlsRef.current = hls;
+
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          // Collect HLS streams/resolutions
+          const levels = hls.levels.map((level, index) => {
+            const height = level.height || (level.attrs && level.attrs.RESOLUTION ? level.attrs.RESOLUTION.split('x')[1] : null);
+            return {
+              index,
+              label: height ? `${height}p` : `Stream ${index + 1}`
+            };
+          });
+          setQualities([{ index: -1, label: 'Auto' }, ...levels]);
+          setCurrentQualityIdx(hls.currentLevel);
+
+          // Collect audio tracks
+          const tracks = hls.audioTracks.map((track, index) => ({
+            index,
+            label: track.name || track.lang || `Track ${index + 1}`,
+            lang: track.lang
+          }));
+          setAudioTracks(tracks);
+          setCurrentAudioTrackIdx(hls.audioTrack);
+          
+          // Auto play on load
+          videoElement.play().catch(() => {});
+        });
+
+        hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (event, data) => {
+          const tracks = data.audioTracks.map((track, index) => ({
+            index,
+            label: track.name || track.lang || `Track ${index + 1}`,
+            lang: track.lang
+          }));
+          setAudioTracks(tracks);
+        });
+
+        hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, (event, data) => {
+          setCurrentAudioTrackIdx(data.id);
+        });
+
+        hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+          // Keep active level highlight in sync
+          if (hls.autoLevelEnabled) {
+            setCurrentQualityIdx(-1);
+          } else {
+            setCurrentQualityIdx(data.level);
+          }
+        });
+
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                hls.recoverMediaError();
+                break;
+              default:
+                hls.destroy();
+                break;
+            }
+          }
+        });
+      } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+        // Safari Native Playback
+        videoElement.src = videoData.master_playlist_url;
+        videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+        videoElement.play().catch(() => {});
+      }
     }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    };
   }, [videoData]);
 
   // Controls Visibility Auto-Hide Loop
@@ -144,6 +212,7 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
           setShowControls(false);
           setShowQualityMenu(false);
           setShowSpeedMenu(false);
+          setShowLanguageMenu(false);
         }, 3000);
       }
     };
@@ -228,6 +297,18 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
     // Auto reset flash state
     setTimeout(() => setFlashIcon(null), 600);
   }
+
+  const handleAudioTrackChange = (index) => {
+    if (hlsRef.current) {
+      hlsRef.current.audioTrack = index;
+      setCurrentAudioTrackIdx(index);
+    } else if (videoRef.current && videoRef.current.audioTracks) {
+      for (let i = 0; i < videoRef.current.audioTracks.length; i++) {
+        videoRef.current.audioTracks[i].enabled = (i === index);
+      }
+      setCurrentAudioTrackIdx(index);
+    }
+  };
 
   function skipTime(amount) {
     if (!videoRef.current) return;
@@ -546,6 +627,7 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
                     onClick={() => {
                       setShowQualityMenu(!showQualityMenu);
                       setShowSpeedMenu(false);
+                      setShowLanguageMenu(false);
                     }}
                     title="Change resolution quality"
                     style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
@@ -582,6 +664,7 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
                   onClick={() => {
                     setShowSpeedMenu(!showSpeedMenu);
                     setShowQualityMenu(false);
+                    setShowLanguageMenu(false);
                   }}
                   title="Playback speed multiplier"
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
@@ -603,6 +686,43 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
                   </div>
                 )}
               </div>
+
+              {/* Language Selector */}
+              {audioTracks.length > 1 && (
+                <div className="popover-menu-wrapper">
+                  <button
+                    className="player-btn"
+                    onClick={() => {
+                      setShowLanguageMenu(!showLanguageMenu);
+                      setShowQualityMenu(false);
+                      setShowSpeedMenu(false);
+                    }}
+                    title="Change audio language"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Globe size={20} />
+                    <span style={{ fontSize: '12px', fontWeight: 'bold' }}>
+                      {audioTracks.find((t) => t.index === currentAudioTrackIdx)?.label || 'Audio'}
+                    </span>
+                  </button>
+                  {showLanguageMenu && (
+                    <div className="popover-menu" style={{ right: 0, minWidth: '120px' }}>
+                      {audioTracks.map((t) => (
+                        <button
+                          key={t.index}
+                          className={`popover-item ${t.index === currentAudioTrackIdx ? 'active' : ''}`}
+                          onClick={() => {
+                            handleAudioTrackChange(t.index);
+                            setShowLanguageMenu(false);
+                          }}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Fullscreen */}
               <button className="player-btn" onClick={toggleFullscreen}>

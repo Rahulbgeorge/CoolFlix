@@ -51,8 +51,8 @@ class VideoProcessor:
             os.makedirs(target_dir, exist_ok=True)
             
             def hls_progress_callback(percent):
-                # HLS transcoding is mapped to the first 80% of total pipeline progress
-                total_progress = (percent * 0.8)
+                # HLS transcoding is mapped to the final third (66.7% - 100%) of total progress
+                total_progress = 66.7 + (percent * 0.333)
                 video.progress = round(total_progress, 1)
                 video.save(update_fields=['progress'])
                 
@@ -66,11 +66,13 @@ class VideoProcessor:
                 progress_callback=hls_progress_callback,
                 target_quality=video.transcode_target,
                 video_codec=info.get('video_codec', ''),
-                audio_codec=info.get('audio_codec', '')
+                audio_codec=info.get('audio_codec', ''),
+                audio_tracks=info.get('audio_tracks', [])
             )
             
             video.hls_status = 'completed'
-            video.progress = 80.0
+            video.status = 'completed'
+            video.progress = 100.0
             video.save()
             logger.info(f"Successfully processed HLS for video: {video.title}")
             
@@ -94,13 +96,13 @@ class VideoProcessor:
             target_dir = cls.get_target_dir(video)
             os.makedirs(target_dir, exist_ok=True)
             
-            video.progress = 85.0
+            video.progress = 5.0
             video.save(update_fields=['progress'])
             
             FFmpegTranscoder.generate_sprite_sheet(video.original_path, target_dir, video.duration)
             
             video.sprite_status = 'completed'
-            video.progress = 90.0
+            video.progress = 33.3 if video.hls_required else 50.0
             video.save()
             logger.info(f"Successfully processed sprite sheet for video: {video.title}")
             
@@ -124,10 +126,18 @@ class VideoProcessor:
             target_dir = cls.get_target_dir(video)
             os.makedirs(target_dir, exist_ok=True)
             
-            video.progress = 95.0
+            video.progress = 35.0 if video.hls_required else 50.0
             video.save(update_fields=['progress'])
             
-            start_time = min(5.0, video.duration * 0.1)
+            # Select random preview start point between 15% and 80% to avoid title cards
+            import random
+            if video.duration > 15:
+                start_time = random.uniform(video.duration * 0.15, video.duration * 0.80)
+            elif video.duration > 5:
+                start_time = random.uniform(0, video.duration - 5)
+            else:
+                start_time = 0.0
+                
             midpoint = video.duration * 0.3 if video.duration > 10 else 1.0
             
             FFmpegTranscoder.generate_thumbnail(video.original_path, target_dir, midpoint)
@@ -135,7 +145,11 @@ class VideoProcessor:
             
             video.preview_status = 'completed'
             video.status = 'completed'
-            video.progress = 100.0
+            if not video.hls_required:
+                video.hls_status = 'skipped'
+                video.progress = 100.0
+            else:
+                video.progress = 66.7
             video.save()
             logger.info(f"Successfully processed preview & thumbnail for video: {video.title}")
             
@@ -147,6 +161,7 @@ class VideoProcessor:
             video.save()
             raise
 
+
     @classmethod
     def process_video_pipeline(cls, video_id):
         """Full sequential execution of the pipeline (backwards compatible)."""
@@ -156,26 +171,26 @@ class VideoProcessor:
             return
             
         video.status = 'processing'
-        video.hls_status = 'processing'
         video.sprite_status = 'pending'
         video.preview_status = 'pending'
+        video.hls_status = 'pending'
         video.progress = 5.0
         video.error_message = None
         video.save()
         
-        cls.process_hls_only(video_id)
+        cls.process_sprite_only(video_id)
         
-        video.refresh_from_db()
-        if video.status != 'failed':
-            video.sprite_status = 'processing'
-            video.save(update_fields=['sprite_status'])
-            cls.process_sprite_only(video_id)
-            
         video.refresh_from_db()
         if video.status != 'failed':
             video.preview_status = 'processing'
             video.save(update_fields=['preview_status'])
             cls.process_preview_only(video_id)
+            
+        video.refresh_from_db()
+        if video.status != 'failed':
+            video.hls_status = 'processing'
+            video.save(update_fields=['hls_status'])
+            cls.process_hls_only(video_id)
 
 
 
