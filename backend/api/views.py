@@ -186,6 +186,9 @@ def scan_api(request):
                 original_path=final_path,
                 slug=slug,
                 status='pending',
+                hls_status='pending',
+                sprite_status='pending',
+                preview_status='pending',
                 transcode_target=get_setting('default_transcode_target', 'original'),
                 progress=0.0,
                 cleaned_title=clean_res.cleaned_name,
@@ -252,6 +255,9 @@ def videos_list_api(request):
             'subtitles': v.subtitles,
             'is_series': v.is_series,
             'transcode_target': v.transcode_target,
+            'hls_status': v.hls_status,
+            'sprite_status': v.sprite_status,
+            'preview_status': v.preview_status,
         })
         
     return JsonResponse({'videos': result})
@@ -322,6 +328,9 @@ def video_detail_api(request, video_id):
         'subtitles': v.subtitles,
         'is_series': v.is_series,
         'transcode_target': v.transcode_target,
+        'hls_status': v.hls_status,
+        'sprite_status': v.sprite_status,
+        'preview_status': v.preview_status,
     })
 
 @csrf_exempt
@@ -352,6 +361,9 @@ def video_retry_api(request, video_id):
         
     video.transcode_target = target
     video.status = 'pending'
+    video.hls_status = 'pending'
+    video.sprite_status = 'pending'
+    video.preview_status = 'pending'
     video.progress = 0.0
     video.error_message = None
     video.save()

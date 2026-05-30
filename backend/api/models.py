@@ -29,6 +29,9 @@ class Video(models.Model):
             ('480p', '480p SD')
         ]
     )
+    hls_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    sprite_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    preview_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     progress = models.FloatField(default=0.0)
     error_message = models.TextField(blank=True, null=True)
     duration = models.FloatField(default=0.0)

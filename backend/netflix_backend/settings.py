@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'api.apps.ApiConfig',
+    'django_crontab',
 ]
 
 MIDDLEWARE = [
@@ -226,4 +227,12 @@ LOGGING = {
         },
     },
 }
+
+# Cron jobs configuration via django-crontab
+CRONJOBS = [
+    ('*/1 * * * *', 'api.cron.run_transcoder_cron'),
+]
+# Redirect all cron job stdout and stderr to the dedicated log file
+CRONTAB_COMMAND_SUFFIX = f'>> {os.path.join(LOGS_DIR, "transcoder.log")} 2>&1'
+
 

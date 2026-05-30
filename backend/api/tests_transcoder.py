@@ -149,25 +149,68 @@ from django.core.management import call_command
 from api.models import Video
 
 class RunTranscoderCommandTests(TestCase):
-    @patch('api.transcoder.VideoProcessor.process_video_pipeline')
-    def test_run_transcoder_command(self, mock_process):
-        # Create a pending video
-        video1 = Video.objects.create(
-            title="Test Video 1",
-            original_path="/path/to/video1.mp4",
-            slug="test-video-1",
-            status="pending"
+    @patch('api.transcoder.VideoProcessor.process_hls_only')
+    @patch('api.transcoder.VideoProcessor.process_sprite_only')
+    @patch('api.transcoder.VideoProcessor.process_preview_only')
+    def test_run_transcoder_priority_flow(self, mock_preview, mock_sprite, mock_hls):
+        # Create 2 pending videos
+        v1 = Video.objects.create(
+            title="Video 1",
+            original_path="/path/v1.mp4",
+            slug="v1",
+            status="pending",
+            hls_status="pending",
+            sprite_status="pending",
+            preview_status="pending"
         )
-        # Create a completed video
-        Video.objects.create(
-            title="Test Video 2",
-            original_path="/path/to/video2.mp4",
-            slug="test-video-2",
-            status="completed"
+        v2 = Video.objects.create(
+            title="Video 2",
+            original_path="/path/v2.mp4",
+            slug="v2",
+            status="pending",
+            hls_status="pending",
+            sprite_status="pending",
+            preview_status="pending"
         )
-        
-        # Run the command
+
+        # Mock HLS side effect: complete HLS stage
+        def complete_hls(vid_id):
+            video = Video.objects.get(id=vid_id)
+            video.hls_status = 'completed'
+            video.status = 'processing'
+            video.save()
+        mock_hls.side_effect = complete_hls
+
+        # Mock Sprite side effect: complete Sprite stage
+        def complete_sprite(vid_id):
+            video = Video.objects.get(id=vid_id)
+            video.sprite_status = 'completed'
+            video.save()
+        mock_sprite.side_effect = complete_sprite
+
+        # Mock Preview side effect: complete overall
+        def complete_preview(vid_id):
+            video = Video.objects.get(id=vid_id)
+            video.preview_status = 'completed'
+            video.status = 'completed'
+            video.save()
+        mock_preview.side_effect = complete_preview
+
+        # Run the transcoder cron command
         call_command('run_transcoder')
-        
-        # Verify that process_video_pipeline was called on the pending video only
-        mock_process.assert_called_once_with(video1.id)
+
+        # Assertions:
+        # 1. HLS should be processed for both videos first (first priority)
+        self.assertEqual(mock_hls.call_count, 2)
+        mock_hls.assert_any_call(v1.id)
+        mock_hls.assert_any_call(v2.id)
+
+        # 2. Sprite sheet should be generated next
+        self.assertEqual(mock_sprite.call_count, 2)
+        mock_sprite.assert_any_call(v1.id)
+        mock_sprite.assert_any_call(v2.id)
+
+        # 3. Previews generated last
+        self.assertEqual(mock_preview.call_count, 2)
+        mock_preview.assert_any_call(v1.id)
+        mock_preview.assert_any_call(v2.id)

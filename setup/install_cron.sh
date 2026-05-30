@@ -1,22 +1,21 @@
 #!/bin/bash
-# install_cron.sh - Script for setting up the crontab job for netflix-clone video transcoding
+# install_cron.sh - Script for setting up the crontab job using django-crontab
 
 # Exit on error
 set -e
 
-echo "=== Installing Transcoder Cron Job ==="
+echo "=== Installing Transcoder Cron Job via django-crontab ==="
 
 # Get current script directory (setup/) and parent project root
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-CRON_JOB="* * * * * cd $PROJECT_DIR/backend && ../.venv/bin/python manage.py run_transcoder >> /var/logs/netflix-clone/transcoder.log 2>&1"
+cd "$PROJECT_DIR/backend"
 
-# Check if the cron job already exists in crontab for this user
-if (crontab -l 2>/dev/null | grep -F "run_transcoder") &>/dev/null; then
-    echo "Transcoder cron job is already installed in crontab."
-else
-    (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
-    echo "Successfully added transcoder cron job to crontab:"
-    echo "  $CRON_JOB"
-fi
+# First, remove existing crontabs managed by django-crontab to prevent duplicates
+../.venv/bin/python manage.py crontab remove || true
+
+# Add crontab using django-crontab
+../.venv/bin/python manage.py crontab add
+
+echo "Successfully registered transcoder cron job via django-crontab."

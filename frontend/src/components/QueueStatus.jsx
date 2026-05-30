@@ -1,9 +1,76 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RefreshCw, AlertTriangle, FileVideo, CheckCircle2, RotateCcw } from 'lucide-react';
 
 export default function QueueStatus({ videos, apiBaseUrl, onRetryComplete }) {
   const [retryingIds, setRetryingIds] = useState(new Set());
   const [selectedTargets, setSelectedTargets] = useState({});
+  const [jobTracker, setJobTracker] = useState({});
+
+  useEffect(() => {
+    setJobTracker((prev) => {
+      const next = { ...prev };
+      videos.forEach((video) => {
+        if (video.status === 'processing') {
+          const prevData = prev[video.id];
+          const now = Date.now();
+          if (!prevData) {
+            next[video.id] = {
+              startTime: now,
+              startProgress: video.progress,
+              lastTime: now,
+              lastProgress: video.progress,
+              eta: null
+            };
+          } else {
+            const elapsedTotal = (now - prevData.startTime) / 1000;
+            const progressTotal = video.progress - prevData.startProgress;
+            
+            // Re-estimate ETA if we have elapsed more than 3 seconds and made some progress
+            if (progressTotal > 0.5 && elapsedTotal > 3.0) {
+              const percentPerSec = progressTotal / elapsedTotal;
+              const remainingPercent = 100 - video.progress;
+              const etaSeconds = remainingPercent / percentPerSec;
+              next[video.id] = {
+                ...prevData,
+                lastTime: now,
+                lastProgress: video.progress,
+                eta: etaSeconds
+              };
+            }
+          }
+        } else if (prev[video.id]) {
+          delete next[video.id];
+        }
+      });
+      return next;
+    });
+  }, [videos]);
+
+  const formatETA = (seconds) => {
+    if (seconds === null || seconds === undefined || isNaN(seconds) || seconds === Infinity) return '';
+    if (seconds < 60) return `(~${Math.round(seconds)}s remaining)`;
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.round(seconds % 60);
+    return `(~${mins}m ${secs}s remaining)`;
+  };
+
+  const getDetailedStatus = (video) => {
+    if (video.status === 'failed') return 'Transcode failed';
+    if (video.status === 'pending') return 'In transcode queue...';
+    if (video.status === 'completed') return 'Completed';
+    
+    if (video.hls_status === 'processing' || (video.hls_status === 'pending' && video.status === 'processing')) {
+      const hlsPercent = Math.min(100, Math.round((video.progress / 80.0) * 100.0));
+      return `Stage 1/3: Transcoding HLS (${hlsPercent}%)`;
+    }
+    if (video.sprite_status === 'processing' || (video.sprite_status === 'pending' && video.hls_status === 'completed')) {
+      return 'Stage 2/3: Generating scrubbing sprite sheet...';
+    }
+    if (video.preview_status === 'processing' || (video.preview_status === 'pending' && video.sprite_status === 'completed')) {
+      return 'Stage 3/3: Generating preview clip & thumbnail...';
+    }
+    return 'Processing...';
+  };
 
   const handleRetry = async (video) => {
     const nextRetrying = new Set(retryingIds);
@@ -147,6 +214,14 @@ export default function QueueStatus({ videos, apiBaseUrl, onRetryComplete }) {
                 {/* Progress bar */}
                 {(isProcessing || video.status === 'pending' || isFailed) && (
                   <div className="queue-item-progress-wrapper">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '11px' }}>
+                      <span style={{ color: 'var(--text-sub)', fontWeight: '600' }}>
+                        {getDetailedStatus(video)}
+                      </span>
+                      <span style={{ color: 'var(--text-muted)' }}>
+                        {formatETA(jobTracker[video.id]?.eta)}
+                      </span>
+                    </div>
                     <div className="queue-item-progress-rail">
                       <div
                         className="queue-item-progress-fill"

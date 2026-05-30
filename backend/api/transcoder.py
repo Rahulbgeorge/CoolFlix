@@ -19,18 +19,26 @@ class VideoProcessor:
     """
 
     @classmethod
-    def process_video_pipeline(cls, video_id):
-        """Full pipeline execution for a single video."""
+    def get_target_dir(cls, video):
+        """Resolves target folder dynamically from settings configuration."""
+        try:
+            output_loc = Setting.objects.get(key='output_loc').value
+        except Setting.DoesNotExist:
+            try:
+                source_loc = Setting.objects.get(key='source_loc').value
+                output_loc = os.path.join(source_loc, 'streamable')
+            except Setting.DoesNotExist:
+                output_loc = os.path.join(settings.MEDIA_ROOT, 'streamable')
+        return os.path.join(output_loc, video.slug)
+
+    @classmethod
+    def process_hls_only(cls, video_id):
+        """Processes only the HLS transcoding stage."""
         try:
             video = Video.objects.get(id=video_id)
         except Video.DoesNotExist:
             return
             
-        video.status = 'processing'
-        video.progress = 5.0
-        video.error_message = None
-        video.save()
-        
         try:
             # 1. Probe video metadata
             info = FFmpegTranscoder.probe_video(video.original_path)
@@ -39,45 +47,12 @@ class VideoProcessor:
             video.height = info['height']
             video.save()
             
-            # Setup folders dynamically from output_loc configuration
-            try:
-                output_loc = Setting.objects.get(key='output_loc').value
-            except Setting.DoesNotExist:
-                try:
-                    source_loc = Setting.objects.get(key='source_loc').value
-                    output_loc = os.path.join(source_loc, 'streamable')
-                except Setting.DoesNotExist:
-                    output_loc = os.path.join(settings.MEDIA_ROOT, 'streamable')
-                    
-            target_dir = os.path.join(output_loc, video.slug)
-            
-            if os.path.exists(target_dir):
-                shutil.rmtree(target_dir)
+            target_dir = cls.get_target_dir(video)
             os.makedirs(target_dir, exist_ok=True)
             
-            # Times for preview & thumbnail
-            start_time = min(5.0, video.duration * 0.1)
-            midpoint = video.duration * 0.3 if video.duration > 10 else 1.0
-            
-            # 2. Thumbnail
-            video.progress = 10.0
-            video.save()
-            FFmpegTranscoder.generate_thumbnail(video.original_path, target_dir, midpoint)
-            
-            # 3. Sprite Sheet
-            video.progress = 15.0
-            video.save()
-            FFmpegTranscoder.generate_sprite_sheet(video.original_path, target_dir, video.duration)
-            
-            # 4. Preview Clip
-            video.progress = 20.0
-            video.save()
-            FFmpegTranscoder.generate_preview(video.original_path, target_dir, start_time)
-            
-            # 5. HLS Transcoding (using a callback to report database progress updates)
             def hls_progress_callback(percent):
-                # HLS transcoding progress is mapped to the remaining 80% of pipeline progress
-                total_progress = 20.0 + (percent * 0.79)
+                # HLS transcoding is mapped to the first 80% of total pipeline progress
+                total_progress = (percent * 0.8)
                 video.progress = round(total_progress, 1)
                 video.save(update_fields=['progress'])
                 
@@ -94,17 +69,113 @@ class VideoProcessor:
                 audio_codec=info.get('audio_codec', '')
             )
             
-            # Complete
+            video.hls_status = 'completed'
+            video.progress = 80.0
+            video.save()
+            logger.info(f"Successfully processed HLS for video: {video.title}")
+            
+        except Exception as e:
+            logger.exception(f"Failed HLS generation for video {video.title}")
+            video.status = 'failed'
+            video.hls_status = 'failed'
+            video.error_message = str(e)
+            video.save()
+            raise
+
+    @classmethod
+    def process_sprite_only(cls, video_id):
+        """Processes only the sprite sheet generation stage."""
+        try:
+            video = Video.objects.get(id=video_id)
+        except Video.DoesNotExist:
+            return
+            
+        try:
+            target_dir = cls.get_target_dir(video)
+            os.makedirs(target_dir, exist_ok=True)
+            
+            video.progress = 85.0
+            video.save(update_fields=['progress'])
+            
+            FFmpegTranscoder.generate_sprite_sheet(video.original_path, target_dir, video.duration)
+            
+            video.sprite_status = 'completed'
+            video.progress = 90.0
+            video.save()
+            logger.info(f"Successfully processed sprite sheet for video: {video.title}")
+            
+        except Exception as e:
+            logger.exception(f"Failed sprite sheet generation for video {video.title}")
+            video.status = 'failed'
+            video.sprite_status = 'failed'
+            video.error_message = str(e)
+            video.save()
+            raise
+
+    @classmethod
+    def process_preview_only(cls, video_id):
+        """Processes only the thumbnail and preview clip generation stage."""
+        try:
+            video = Video.objects.get(id=video_id)
+        except Video.DoesNotExist:
+            return
+            
+        try:
+            target_dir = cls.get_target_dir(video)
+            os.makedirs(target_dir, exist_ok=True)
+            
+            video.progress = 95.0
+            video.save(update_fields=['progress'])
+            
+            start_time = min(5.0, video.duration * 0.1)
+            midpoint = video.duration * 0.3 if video.duration > 10 else 1.0
+            
+            FFmpegTranscoder.generate_thumbnail(video.original_path, target_dir, midpoint)
+            FFmpegTranscoder.generate_preview(video.original_path, target_dir, start_time)
+            
+            video.preview_status = 'completed'
             video.status = 'completed'
             video.progress = 100.0
             video.save()
-            logger.info(f"Successfully processed video: {video.title}")
+            logger.info(f"Successfully processed preview & thumbnail for video: {video.title}")
             
         except Exception as e:
-            logger.exception(f"Failed to transcode video {video.title}")
+            logger.exception(f"Failed preview/thumbnail generation for video {video.title}")
             video.status = 'failed'
+            video.preview_status = 'failed'
             video.error_message = str(e)
             video.save()
+            raise
+
+    @classmethod
+    def process_video_pipeline(cls, video_id):
+        """Full sequential execution of the pipeline (backwards compatible)."""
+        try:
+            video = Video.objects.get(id=video_id)
+        except Video.DoesNotExist:
+            return
+            
+        video.status = 'processing'
+        video.hls_status = 'processing'
+        video.sprite_status = 'pending'
+        video.preview_status = 'pending'
+        video.progress = 5.0
+        video.error_message = None
+        video.save()
+        
+        cls.process_hls_only(video_id)
+        
+        video.refresh_from_db()
+        if video.status != 'failed':
+            video.sprite_status = 'processing'
+            video.save(update_fields=['sprite_status'])
+            cls.process_sprite_only(video_id)
+            
+        video.refresh_from_db()
+        if video.status != 'failed':
+            video.preview_status = 'processing'
+            video.save(update_fields=['preview_status'])
+            cls.process_preview_only(video_id)
 
 
 
