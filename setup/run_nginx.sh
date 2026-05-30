@@ -5,6 +5,7 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 NGINX_CONF="$SCRIPT_DIR/nginx.conf"
+NGINX_RESOLVED_CONF="$SCRIPT_DIR/nginx_resolved.conf"
 PID_FILE="$SCRIPT_DIR/nginx.pid"
 
 echo "=== Nginx User-Space Control Script ==="
@@ -15,12 +16,16 @@ if ! command -v nginx &> /dev/null; then
     exit 1
 fi
 
+# Generate dynamic resolved configuration replacing the hardcoded project directory
+echo "Generating resolved Nginx configuration at $NGINX_RESOLVED_CONF..."
+sed "s|/home/eleven/projects/CoolFlix|$PROJECT_DIR|g" "$NGINX_CONF" > "$NGINX_RESOLVED_CONF"
+
 # Stop any running Nginx using this configuration's PID file
 if [ -f "$PID_FILE" ]; then
     PID=$(cat "$PID_FILE")
     if kill -0 "$PID" 2>/dev/null; then
         echo "Stopping Nginx (PID: $PID)..."
-        nginx -c "$NGINX_CONF" -s stop 2>/dev/null || kill "$PID" 2>/dev/null || true
+        nginx -c "$NGINX_RESOLVED_CONF" -s stop 2>/dev/null || kill "$PID" 2>/dev/null || true
         # Wait a moment for it to stop
         sleep 1
     fi
@@ -32,7 +37,9 @@ PORT_PID=$(lsof -t -i :8000)
 if [ ! -z "$PORT_PID" ]; then
     echo "Port 8000 is occupied by process: $PORT_PID"
     echo "Attempting to terminate the process occupying port 8000..."
-    kill -9 "$PORT_PID" 2>/dev/null || true
+    for pid in $PORT_PID; do
+        kill -9 "$pid" 2>/dev/null || true
+    done
     sleep 1
 fi
 
@@ -41,8 +48,8 @@ touch "$SCRIPT_DIR/nginx_access.log"
 touch "$SCRIPT_DIR/nginx_error.log"
 
 # Start Nginx
-echo "Starting Nginx with custom config: $NGINX_CONF"
-nginx -c "$NGINX_CONF"
+echo "Starting Nginx with custom config: $NGINX_RESOLVED_CONF"
+nginx -c "$NGINX_RESOLVED_CONF"
 
 if [ $? -eq 0 ]; then
     echo "Nginx started successfully on port 8000!"

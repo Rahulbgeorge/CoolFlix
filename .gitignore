@@ -25,3 +25,8 @@ test_videos/
 # System files
 .DS_Store
 Thumbs.db
+
+# Nginx resolved configs, logs, and pid files
+setup/nginx_resolved.conf
+setup/*.pid
+setup/*.log
