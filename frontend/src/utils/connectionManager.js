@@ -11,6 +11,7 @@ export class ConnectionManager {
     this.sameNetwork = false;
     this.checkInterval = null;
     this.isChecking = false;
+    this.lastLocalFailureTime = 0;      // Track timestamp of last local connection failure
   }
 
   /**
@@ -41,11 +42,12 @@ export class ConnectionManager {
     this.isChecking = true;
 
     try {
-      // 1. Fetch network info from current active endpoint
+      // 1. Fetch network info from current active endpoint, stripping trailing slash to prevent routing issues
+      const baseUrl = this.currentBaseUrl.replace(/\/$/, "");
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-      const response = await fetch(`${this.currentBaseUrl}/api/network-info`, { 
+      const response = await fetch(`${baseUrl}/api/network-info`, { 
         signal: controller.signal 
       });
       clearTimeout(timeoutId);
@@ -61,7 +63,26 @@ export class ConnectionManager {
 
         if (this.serverLocalIp) {
           localUrl = `${window.location.protocol}//${this.serverLocalIp}:8000`;
-          isLocalReachable = await this.testUrl(localUrl);
+          
+          // Optimization: If the current active URL is already the local IP, and the fetch succeeded above,
+          // it is obviously reachable. Bypassing redundant ping to avoid transient timeout reverts.
+          if (baseUrl === localUrl) {
+            isLocalReachable = true;
+          } else {
+            // Check if we are in the 5-minute backoff period after a local IP probe failure
+            const inBackoff = Date.now() - this.lastLocalFailureTime < 300000; // 5 minutes
+            
+            if (inBackoff) {
+              isLocalReachable = false;
+            } else {
+              isLocalReachable = await this.testUrl(localUrl);
+              
+              if (!isLocalReachable) {
+                console.log("ConnectionManager: Local IP probe failed. Initiating 5-minute backoff.");
+                this.lastLocalFailureTime = Date.now();
+              }
+            }
+          }
         }
 
         const sameNetworkDetected = data.same_network || isLocalReachable;
@@ -91,6 +112,8 @@ export class ConnectionManager {
       // If current fails, try to fall back to the default domain (public domain)
       if (this.currentBaseUrl !== this.defaultDomain) {
         console.log(`ConnectionManager: Reverting to DEFAULT domain (fallback): ${this.defaultDomain}`);
+        // Set lastLocalFailureTime so that we back off immediately from retrying
+        this.lastLocalFailureTime = Date.now();
         this.currentBaseUrl = this.defaultDomain;
         if (this.onUrlChange) {
           this.onUrlChange(this.defaultDomain);
@@ -106,10 +129,11 @@ export class ConnectionManager {
    */
   async testUrl(url) {
     try {
+      const cleanUrl = url.replace(/\/$/, "");
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 1500);
       
-      const response = await fetch(`${url}/api/network-info`, { 
+      const response = await fetch(`${cleanUrl}/api/network-info`, { 
         signal: controller.signal 
       });
       clearTimeout(timeoutId);
