@@ -505,8 +505,9 @@ def serve_streamable_file(request, relative_path):
     # Check if Nginx proxied the request to support high-performance X-Accel-Redirect range queries
     is_nginx = 'HTTP_X_REAL_IP' in request.META or 'HTTP_X_FORWARDED_FOR' in request.META
     if is_nginx:
+        from urllib.parse import quote
         response = HttpResponse()
-        response['X-Accel-Redirect'] = f'/original_videos{file_path}'
+        response['X-Accel-Redirect'] = quote(f'/original_videos{file_path}', safe='/')
         response['Content-Type'] = content_type
         response["Access-Control-Allow-Origin"] = "*"
         return response

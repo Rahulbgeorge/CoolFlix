@@ -207,9 +207,10 @@ class FileNameCleaner:
         parent_dir = os.path.dirname(filepath)
         filename_only = os.path.basename(filepath)
 
-        # Prepare new folder name: Cleaned Name (+ Year if available) to make it unique
-        folder_suffix = f" ({year})" if year else ""
-        new_folder_name = f"{cleaned_name}{folder_suffix}"
+        # Prepare new folder name without spaces: replace spaces with underscores and remove special characters
+        folder_suffix = f"_{year}" if year else ""
+        cleaned_folder = re.sub(r'[^a-zA-Z0-9\s_\-]', '', cleaned_name)
+        new_folder_name = f"{cleaned_folder}{folder_suffix}".replace(" ", "_")
 
         # If source_loc is configured, check if we are in a subdirectory of source_loc
         new_filepath = filepath
@@ -220,7 +221,7 @@ class FileNameCleaner:
             # If parent is the root source_loc, we need to create a new subdirectory and move the file
             if abs_parent == abs_source:
                 new_folder_path = os.path.join(source_loc, new_folder_name)
-                new_filename = f"{cleaned_name}{folder_suffix}{ext}"
+                new_filename = f"{cleaned_folder}{folder_suffix}{ext}".replace(" ", "_")
                 new_filepath = os.path.join(new_folder_path, new_filename)
             elif abs_parent.startswith(abs_source + os.sep):
                 # We are in a subdirectory. We rename this subdirectory to new_folder_name
@@ -229,11 +230,11 @@ class FileNameCleaner:
                 top_folder = relative_path.split(os.sep)[0]
                 
                 new_folder_path = os.path.join(source_loc, new_folder_name)
-                new_filename = f"{cleaned_name}{folder_suffix}{ext}"
+                new_filename = f"{cleaned_folder}{folder_suffix}{ext}".replace(" ", "_")
                 new_filepath = os.path.join(new_folder_path, new_filename)
         else:
             # Fallback when no source_loc is given: just rename in-place
-            new_filename = f"{cleaned_name}{folder_suffix}{ext}"
+            new_filename = f"{cleaned_folder}{folder_suffix}{ext}".replace(" ", "_")
             new_filepath = os.path.join(parent_dir, new_filename)
 
         return CleanOutput(
