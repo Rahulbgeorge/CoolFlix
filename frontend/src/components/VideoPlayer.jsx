@@ -3,7 +3,7 @@ import Hls from 'hls.js';
 import {
   Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX,
   Maximize, Minimize, ArrowLeft, Gauge, Activity,
-  RefreshCw, AlertCircle, Globe
+  RefreshCw, AlertCircle, Globe, Scissors, Trash2
 } from 'lucide-react';
 
 export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
@@ -42,6 +42,143 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
 
   // Center Play/Pause Flash state
   const [flashIcon, setFlashIcon] = useState(null); // 'play' | 'pause'
+
+  // Edit mode and clips state
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [clips, setClips] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [clipName, setClipName] = useState('');
+  const [clipCategory, setClipCategory] = useState('');
+  const [clipStart, setClipStart] = useState(0);
+  const [clipEnd, setClipEnd] = useState(0);
+  const [saveError, setSaveError] = useState('');
+  const [thumbCacheBust, setThumbCacheBust] = useState(Date.now());
+
+  const fetchClips = useCallback(async () => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/videos/${videoId}/clips`);
+      if (response.ok) {
+        const data = await response.json();
+        setClips(data.clips || []);
+        setCategories(data.categories || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch clips:', err);
+    }
+  }, [apiBaseUrl, videoId]);
+
+  useEffect(() => {
+    fetchClips();
+  }, [fetchClips]);
+
+  const handleSaveClip = async (e) => {
+    e.preventDefault();
+    setSaveError('');
+    if (!clipName.trim()) {
+      setSaveError('Name cannot be empty');
+      return;
+    }
+    if (!clipCategory.trim()) {
+      setSaveError('Category cannot be empty');
+      return;
+    }
+    if (clipStart < 0) {
+      setSaveError('Start position cannot be negative');
+      return;
+    }
+    if (clipEnd <= clipStart) {
+      setSaveError('End position must be greater than start position');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/videos/${videoId}/clips`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: clipName,
+          category: clipCategory,
+          start_time: clipStart,
+          end_time: clipEnd
+        })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setClipName('');
+        setClipStart(0);
+        setClipEnd(0);
+        fetchClips();
+        if (clipCategory.trim() === 'Preview') {
+          fetchVideoData();
+        }
+      } else {
+        setSaveError(data.error || 'Failed to save clip');
+      }
+    } catch (err) {
+      console.error('Save clip error:', err);
+      setSaveError('Network error');
+    }
+  };
+
+  const handleDeleteClip = async (clipId, e) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this clip?')) return;
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/videos/clips/${clipId}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        fetchClips();
+        fetchVideoData();
+      } else {
+        alert('Failed to delete clip');
+      }
+    } catch (err) {
+      console.error('Delete clip error:', err);
+    }
+  };
+
+  const handleUploadThumbnail = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/videos/${videoId}/thumbnail`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        fetchVideoData();
+      } else {
+        alert(data.error || 'Failed to upload thumbnail');
+      }
+    } catch (err) {
+      console.error('Error uploading thumbnail:', err);
+      alert('Network error while uploading thumbnail.');
+    }
+  };
+
+  const handleDeleteThumbnail = async () => {
+    if (!confirm('Revert to the auto-generated thumbnail from the preview clip?')) return;
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/videos/${videoId}/thumbnail`, {
+        method: 'DELETE'
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        fetchVideoData();
+      } else {
+        alert(data.error || 'Failed to delete custom thumbnail');
+      }
+    } catch (err) {
+      console.error('Error deleting thumbnail:', err);
+      alert('Network error while deleting thumbnail.');
+    }
+  };
   
   const videoRef = useRef(null);
   const containerRef = useRef(null);
@@ -55,6 +192,7 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
       const response = await fetch(`${apiBaseUrl}/api/videos/${videoId}`);
       const data = await response.json();
       setVideoData(data);
+      setThumbCacheBust(Date.now());
     } catch (err) {
       console.error('Failed to load video detail', err);
     } finally {
@@ -78,7 +216,7 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
 
   // Initialize HLS
   useEffect(() => {
-    if (!videoData || !videoRef.current || videoData.status !== 'completed') return;
+    if (!videoData || !videoRef.current) return;
 
     const videoElement = videoRef.current;
 
@@ -107,6 +245,17 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
       videoElement.src = videoData.mp4_stream_url;
       videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
       videoElement.play().catch(() => {});
+      
+      // Fallback to populate audioTracks list if native browser API is missing
+      if (!videoElement.audioTracks && videoData.audio_tracks && videoData.audio_tracks.length > 1) {
+        const tracks = videoData.audio_tracks.map(track => ({
+          index: track.index,
+          label: track.title || track.language || `Track ${track.index + 1}`,
+          lang: track.language
+        }));
+        setAudioTracks(tracks);
+        setCurrentAudioTrackIdx(0);
+      }
       
       // Hide qualities selection (single file stream)
       setQualities([]);
@@ -234,6 +383,12 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
   // Keyboard controls listener
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Ignore keyboard controls if user is typing in any input/textarea
+      const targetTag = e.target.tagName.toLowerCase();
+      if (targetTag === 'input' || targetTag === 'textarea' || e.target.isContentEditable) {
+        return;
+      }
+
       if (!videoRef.current) return;
       
       switch (e.code) {
@@ -306,6 +461,27 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
       for (let i = 0; i < videoRef.current.audioTracks.length; i++) {
         videoRef.current.audioTracks[i].enabled = (i === index);
       }
+      setCurrentAudioTrackIdx(index);
+    } else if (videoRef.current) {
+      // Chrome/Firefox fallback: Reload the video with dynamic remuxing query param
+      const videoElement = videoRef.current;
+      const savedTime = videoElement.currentTime;
+      const wasPlaying = !videoElement.paused;
+      
+      // Update src with track parameter
+      videoElement.src = `${videoData.mp4_stream_url}?track=${index}`;
+      
+      // Reload and restore playing state & currentTime
+      const handleMetadata = () => {
+        videoElement.currentTime = savedTime;
+        if (wasPlaying) {
+          videoElement.play().catch(() => {});
+        }
+        videoElement.removeEventListener('loadedmetadata', handleMetadata);
+      };
+      
+      videoElement.addEventListener('loadedmetadata', handleMetadata);
+      videoElement.load();
       setCurrentAudioTrackIdx(index);
     }
   };
@@ -487,27 +663,22 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
     );
   }
 
-  if (!videoData || videoData.status !== 'completed') {
+  if (!videoData) {
     return (
-      <div className="custom-player-container" style={{ display: 'flex', alignItems: 'center', justify: 'center', padding: '40px' }}>
-        <div style={{ textAlign: 'center', maxWidth: '400px' }}>
-          <AlertCircle size={48} style={{ color: 'var(--accent-red)', marginBottom: '16px' }} />
-          <h3 style={{ color: '#fff', marginBottom: '16px' }}>HLS Streams Not Ready</h3>
-          <p style={{ color: 'var(--text-sub)', marginBottom: '24px' }}>
-            This video is not processed yet or failed to transcode. Please return to the catalog and complete transcoding.
-          </p>
-          <button className="btn btn-primary" onClick={onClose}>
-            Go Back
-          </button>
+      <div className="custom-player-container" style={{ display: 'flex', alignItems: 'center', justify: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <RefreshCw size={48} className="spin" style={{ color: 'var(--accent-red)', marginBottom: '16px' }} />
+          <h3 style={{ color: '#fff' }}>Loading Video...</h3>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`custom-player-container ${showControls ? 'show-controls' : ''}`} ref={containerRef}>
-      {/* HTML5 Video Element */}
-      <video
+    <div className={`custom-player-container ${showControls ? 'show-controls' : ''}`} ref={containerRef} style={{ display: 'flex', flexDirection: 'row' }}>
+      <div style={{ flex: 1, position: 'relative', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {/* HTML5 Video Element */}
+        <video
         ref={videoRef}
         className="video-element"
         onClick={togglePlay}
@@ -724,6 +895,21 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
                 </div>
               )}
 
+              {/* Edit Mode Toggle */}
+              <button
+                className={`player-btn ${isEditMode ? 'active' : ''}`}
+                onClick={() => {
+                  setIsEditMode(!isEditMode);
+                  if (!isEditMode && playing) {
+                    togglePlay();
+                  }
+                }}
+                title="Toggle Edit Mode (Clips)"
+                style={{ color: isEditMode ? 'var(--accent-red)' : '#fff' }}
+              >
+                <Scissors size={20} />
+              </button>
+
               {/* Fullscreen */}
               <button className="player-btn" onClick={toggleFullscreen}>
                 {fullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
@@ -732,6 +918,164 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
           </div>
         </div>
       </div>
+    </div>
+      
+      {isEditMode && (
+        <div className="edit-sidebar">
+          <h3>
+            <Scissors size={20} />
+            Edit Mode
+          </h3>
+
+          <form className="edit-form" onSubmit={handleSaveClip}>
+            {saveError && <div className="edit-error-msg">{saveError}</div>}
+            
+            <div className="edit-time-row">
+              <span className="edit-time-text">Start: {formatTime(clipStart)}</span>
+              <button 
+                type="button" 
+                className="edit-sidebar-btn" 
+                onClick={() => setClipStart(Math.round(currentTime * 10) / 10)}
+              >
+                Set Start
+              </button>
+            </div>
+
+            <div className="edit-time-row">
+              <span className="edit-time-text">End: {formatTime(clipEnd)}</span>
+              <button 
+                type="button" 
+                className="edit-sidebar-btn" 
+                onClick={() => setClipEnd(Math.round(currentTime * 10) / 10)}
+              >
+                Set End
+              </button>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '12px' }}>
+              <label className="form-label" style={{ marginBottom: '4px' }}>Clip Name</label>
+              <input 
+                type="text" 
+                className="edit-input" 
+                value={clipName} 
+                onChange={(e) => setClipName(e.target.value)} 
+                placeholder="e.g. Action Scene"
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '12px' }}>
+              <label className="form-label" style={{ marginBottom: '4px' }}>Category</label>
+              <input 
+                type="text" 
+                className="edit-input" 
+                list="existing-categories"
+                value={clipCategory} 
+                onChange={(e) => setClipCategory(e.target.value)} 
+                placeholder="e.g. Action"
+              />
+              <datalist id="existing-categories">
+                {categories.map((cat, idx) => (
+                  <option key={idx} value={cat} />
+                ))}
+              </datalist>
+            </div>
+
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', fontSize: '13px', padding: '8px' }}>
+              Save Clip
+            </button>
+          </form>
+
+          <hr style={{ border: '0', borderTop: '1px solid #333', margin: '20px 0' }} />
+          
+          <div className="thumbnail-section" style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#fff' }}>Thumbnail Settings</h4>
+            
+            {/* Thumbnail Preview */}
+            <div className="thumbnail-preview-container" style={{ position: 'relative', width: '100%', height: '110px', backgroundColor: '#1a1a1a', borderRadius: '4px', overflow: 'hidden', marginBottom: '12px', border: '1px solid #333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {videoData?.thumbnail_url ? (
+                <img 
+                  src={`${videoData.thumbnail_url}${videoData.thumbnail_url.includes('?') ? '&' : '?'}t=${thumbCacheBust}`} 
+                  alt="Video Thumbnail" 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                />
+              ) : (
+                <span style={{ color: '#666', fontSize: '12px' }}>No Thumbnail Available</span>
+              )}
+            </div>
+            
+            <div style={{ fontSize: '11px', color: 'var(--text-sub)', marginBottom: '12px' }}>
+              {videoData?.has_custom_thumbnail ? (
+                <span style={{ color: '#4ade80', fontWeight: 'bold' }}>Custom Uploaded Image</span>
+              ) : (
+                <span>Auto-generated from start of Preview Clip</span>
+              )}
+            </div>
+
+            {/* Thumbnail Actions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label 
+                className="btn btn-secondary" 
+                style={{ width: '100%', fontSize: '12px', padding: '6px 10px', textAlign: 'center', cursor: 'pointer', display: 'block', boxSizing: 'border-box', backgroundColor: '#333', color: '#fff', borderRadius: '4px' }}
+              >
+                Upload Custom Image
+                <input 
+                  type="file" 
+                  accept="image/png, image/jpeg, image/jpg" 
+                  style={{ display: 'none' }} 
+                  onChange={handleUploadThumbnail} 
+                />
+              </label>
+              
+              {videoData?.has_custom_thumbnail && (
+                <button 
+                  type="button" 
+                  className="btn" 
+                  style={{ width: '100%', fontSize: '12px', padding: '6px 10px', backgroundColor: 'var(--accent-red)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                  onClick={handleDeleteThumbnail}
+                >
+                  Delete Custom Image
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="clips-section-title">Saved Clips ({clips.length})</div>
+          <div className="clips-list">
+            {clips.length === 0 ? (
+              <div style={{ color: '#666', fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>
+                No clips saved yet.
+              </div>
+            ) : (
+              clips.map((clip) => (
+                <div 
+                  key={clip.id} 
+                  className="clip-item"
+                  onClick={() => {
+                    if (videoRef.current) {
+                      videoRef.current.currentTime = clip.start_time;
+                    }
+                  }}
+                >
+                  <div className="clip-item-info">
+                    <span className="clip-item-category">{clip.category}</span>
+                    <span className="clip-item-title">{clip.name}</span>
+                    <span className="clip-item-time">
+                      {formatTime(clip.start_time)} - {formatTime(clip.end_time)}
+                    </span>
+                  </div>
+                  <button 
+                    className="clip-delete-btn" 
+                    onClick={(e) => handleDeleteClip(clip.id, e)}
+                    title="Delete clip"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

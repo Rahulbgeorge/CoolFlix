@@ -2,8 +2,8 @@ import { Play, Info, Settings, AlertCircle } from 'lucide-react';
 import VideoCard from './VideoCard';
 
 export default function Dashboard({ videos, onPlay, onOpenSettings, onSwitchTab }) {
-  const completedVideos = videos.filter((v) => v.status === 'completed');
-  const transcodingVideos = videos.filter((v) => v.status !== 'completed');
+  const completedVideos = videos.filter((v) => v.status === 'completed' || v.status === 'not_required');
+  const transcodingVideos = videos.filter((v) => v.status !== 'completed' && v.status !== 'not_required');
 
   // Featured video for Hero Section
   const featuredVideo = completedVideos.length > 0 ? completedVideos[0] : null;
@@ -13,14 +13,28 @@ export default function Dashboard({ videos, onPlay, onOpenSettings, onSwitchTab 
       {/* Hero Banner */}
       {featuredVideo ? (
         <div className="hero-banner">
-          <video
-            src={featuredVideo.preview_url}
-            className="hero-video-bg"
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
+          {featuredVideo.preview_url ? (
+            <video
+              src={featuredVideo.preview_url}
+              className="hero-video-bg"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <div 
+              className="hero-video-bg" 
+              style={{ 
+                background: 'linear-gradient(135deg, #090909 0%, #1c1c1c 100%)',
+                width: '100%',
+                height: '100%',
+                position: 'absolute',
+                top: 0,
+                left: 0
+              }} 
+            />
+          )}
           <div className="hero-overlay" />
           <div className="hero-content">
             <h1 className="hero-title">{featuredVideo.cleaned_title || featuredVideo.title}</h1>

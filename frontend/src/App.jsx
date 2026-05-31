@@ -11,11 +11,46 @@ const API_BASE_URL = window.location.port === '5173'
   : window.location.origin;
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('browse');
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [activeVideoId, setActiveVideoId] = useState(null);
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const [previousPath, setPreviousPath] = useState('/');
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Sync state with browser popstate events
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigate = (path) => {
+    window.history.pushState({}, '', path);
+    setCurrentPath(path);
+  };
+
+  // Derive active tab, modal, and video player states dynamically
+  let activeTab = 'browse';
+  let isSettingsOpen = false;
+  let activeVideoId = null;
+
+  if (currentPath === '/queue') {
+    activeTab = 'queue';
+  } else if (currentPath === '/downloader') {
+    activeTab = 'downloader';
+  } else if (currentPath === '/settings') {
+    isSettingsOpen = true;
+  } else if (currentPath.startsWith('/video/')) {
+    const match = currentPath.match(/^\/video\/([^\/]+)$/);
+    if (match) {
+      const slug = match[1];
+      const video = videos.find((v) => v.slug === slug);
+      if (video) {
+        activeVideoId = video.id;
+      }
+    }
+  }
 
   // Fetch videos from the backend API
   const fetchVideos = useCallback(async () => {
@@ -37,6 +72,20 @@ export default function App() {
     fetchVideos();
   }, [fetchVideos]);
 
+  // Redirect to browse if video path is visited but slug is invalid after load
+  useEffect(() => {
+    if (!loading && currentPath.startsWith('/video/')) {
+      const match = currentPath.match(/^\/video\/([^\/]+)$/);
+      if (match) {
+        const slug = match[1];
+        const video = videos.find((v) => v.slug === slug);
+        if (!video) {
+          navigate('/');
+        }
+      }
+    }
+  }, [loading, currentPath, videos]);
+
   // Poll for transcoding status in the background if there are pending or processing items
   useEffect(() => {
     const hasActiveTranscodes = videos.some(
@@ -54,7 +103,7 @@ export default function App() {
 
   const handleScanComplete = () => {
     fetchVideos();
-    setActiveTab('queue'); // Redirect to queue to watch progress
+    navigate('/queue'); // Redirect to queue to watch progress
   };
 
   return (
@@ -64,7 +113,7 @@ export default function App() {
           videoId={activeVideoId}
           apiBaseUrl={API_BASE_URL}
           onClose={() => {
-            setActiveVideoId(null);
+            navigate(previousPath === '/settings' ? '/' : previousPath);
             fetchVideos(); // Fetch videos again to get latest state
           }}
         />
@@ -72,8 +121,12 @@ export default function App() {
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           <Navbar
             activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            onOpenSettings={() => setIsSettingsOpen(true)}
+            onNavigate={(path) => {
+              if (path === '/settings') {
+                setPreviousPath(window.location.pathname);
+              }
+              navigate(path);
+            }}
           />
 
           {loading ? (
@@ -91,9 +144,15 @@ export default function App() {
           ) : activeTab === 'browse' ? (
             <Dashboard
               videos={videos}
-              onPlay={(v) => setActiveVideoId(v.id)}
-              onOpenSettings={() => setIsSettingsOpen(true)}
-              onSwitchTab={setActiveTab}
+              onPlay={(v) => {
+                setPreviousPath(window.location.pathname);
+                navigate(`/video/${v.slug}`);
+              }}
+              onOpenSettings={() => {
+                setPreviousPath(window.location.pathname);
+                navigate('/settings');
+              }}
+              onSwitchTab={(tab) => navigate(tab === 'browse' ? '/' : `/${tab}`)}
             />
           ) : activeTab === 'queue' ? (
             <QueueStatus
@@ -109,7 +168,7 @@ export default function App() {
 
           <SettingsModal
             isOpen={isSettingsOpen}
-            onClose={() => setIsSettingsOpen(false)}
+            onClose={() => navigate(previousPath === '/settings' ? '/' : previousPath)}
             apiBaseUrl={API_BASE_URL}
             onScanComplete={handleScanComplete}
           />

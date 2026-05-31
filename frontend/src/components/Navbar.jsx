@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Settings, Film, ListOrdered, Download } from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, onOpenSettings }) {
+export default function Navbar({ activeTab, onNavigate }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export default function Navbar({ activeTab, setActiveTab, onOpenSettings }) {
   return (
     <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
-        <a href="#" className="navbar-brand" onClick={() => setActiveTab('browse')}>
+        <a href="#" className="navbar-brand" onClick={(e) => { e.preventDefault(); onNavigate('/'); }}>
           Netflix
         </a>
         <div className="navbar-links">
@@ -28,7 +28,7 @@ export default function Navbar({ activeTab, setActiveTab, onOpenSettings }) {
             className={`navbar-link ${activeTab === 'browse' ? 'active' : ''}`}
             onClick={(e) => {
               e.preventDefault();
-              setActiveTab('browse');
+              onNavigate('/');
             }}
             style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
@@ -40,7 +40,7 @@ export default function Navbar({ activeTab, setActiveTab, onOpenSettings }) {
             className={`navbar-link ${activeTab === 'queue' ? 'active' : ''}`}
             onClick={(e) => {
               e.preventDefault();
-              setActiveTab('queue');
+              onNavigate('/queue');
             }}
             style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
@@ -52,7 +52,7 @@ export default function Navbar({ activeTab, setActiveTab, onOpenSettings }) {
             className={`navbar-link ${activeTab === 'downloader' ? 'active' : ''}`}
             onClick={(e) => {
               e.preventDefault();
-              setActiveTab('downloader');
+              onNavigate('/downloader');
             }}
             style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
@@ -64,7 +64,7 @@ export default function Navbar({ activeTab, setActiveTab, onOpenSettings }) {
       <div className="navbar-links">
         <button
           className="navbar-link"
-          onClick={onOpenSettings}
+          onClick={() => onNavigate('/settings')}
           style={{ background: 'transparent', display: 'flex', alignItems: 'center', gap: '6px' }}
           title="Configure settings"
         >

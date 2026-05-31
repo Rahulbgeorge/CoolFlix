@@ -6,9 +6,11 @@ export default function VideoCard({ video, onPlay, onSelectRow }) {
   const hoverTimeout = useRef(null);
   const videoRef = useRef(null);
 
+  const isPlayable = true;
+
   const handleMouseEnter = () => {
     setHovered(true);
-    if (video.status === 'completed' && video.preview_url) {
+    if (isPlayable && video.preview_url) {
       // Small delay before starting video playback to avoid jarring jumps on swipe-over
       hoverTimeout.current = setTimeout(() => {
         if (videoRef.current) {
@@ -42,10 +44,8 @@ export default function VideoCard({ video, onPlay, onSelectRow }) {
     return `${m}:${sStr}`;
   };
 
-  const isCompleted = video.status === 'completed';
-
   const handleClick = () => {
-    if (isCompleted) {
+    if (isPlayable) {
       onPlay(video);
     } else if (onSelectRow) {
       onSelectRow();
@@ -60,7 +60,7 @@ export default function VideoCard({ video, onPlay, onSelectRow }) {
       onClick={handleClick}
     >
       {/* Thumbnail */}
-      {isCompleted ? (
+      {video.thumbnail_url ? (
         <img
           src={video.thumbnail_url}
           alt={video.title}
@@ -87,7 +87,7 @@ export default function VideoCard({ video, onPlay, onSelectRow }) {
       )}
 
       {/* Hover Silent Preview Video */}
-      {isCompleted && video.preview_url && hovered && (
+      {isPlayable && video.preview_url && hovered && (
         <video
           ref={videoRef}
           src={video.preview_url}
@@ -99,7 +99,7 @@ export default function VideoCard({ video, onPlay, onSelectRow }) {
       )}
 
       {/* Processing Status Badges */}
-      {!isCompleted && (
+      {!isPlayable && (
         <span className={`video-card-status-badge status-${video.status}`}>
           {video.status}
         </span>
@@ -170,10 +170,10 @@ export default function VideoCard({ video, onPlay, onSelectRow }) {
 
         <div className="video-card-meta" style={{ marginTop: '6px' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            {isCompleted && <Play size={10} fill="currentColor" />}
-            {isCompleted ? 'Play' : video.status}
+            {isPlayable && <Play size={10} fill="currentColor" />}
+            {isPlayable ? 'Play' : video.status}
           </span>
-          {isCompleted && <span>{formatDuration(video.duration)}</span>}
+          {isPlayable && video.duration > 0 && <span>{formatDuration(video.duration)}</span>}
         </div>
       </div>
     </div>

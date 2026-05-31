@@ -9,6 +9,7 @@ class Setting(models.Model):
 
 class Video(models.Model):
     STATUS_CHOICES = [
+        ('not_required', 'Not Required'),
         ('pending', 'Pending'),
         ('processing', 'Processing'),
         ('completed', 'Completed'),
@@ -31,7 +32,9 @@ class Video(models.Model):
     )
     hls_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     sprite_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    preview_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    preview_clip_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    preview_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_required')
+    has_custom_thumbnail = models.BooleanField(default=False)
     progress = models.FloatField(default=0.0)
     error_message = models.TextField(blank=True, null=True)
     duration = models.FloatField(default=0.0)
@@ -57,3 +60,15 @@ class Video(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.status})"
+
+class VideoClip(models.Model):
+    video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='clips')
+    name = models.CharField(max_length=255)
+    start_time = models.FloatField()
+    end_time = models.FloatField()
+    category = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.start_time}s - {self.end_time}s)"
+

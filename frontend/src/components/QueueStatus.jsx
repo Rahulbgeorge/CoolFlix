@@ -61,8 +61,15 @@ function QueueItem({
         
         // Define logical ceiling based on current processing status and HLS settings
         let cap = 100;
-        if (video.sprite_status === 'processing') {
-          cap = video.hls_required ? 33.3 : 50.0;
+        if (video.preview_clip_status === 'processing') {
+          cap = 5.0;
+        } else if (video.sprite_status === 'processing') {
+          const hasPhysicalPreview = ['pending', 'processing', 'completed'].includes(video.preview_status);
+          if (hasPhysicalPreview) {
+            cap = video.hls_required ? 33.3 : 50.0;
+          } else {
+            cap = video.hls_required ? 66.7 : 100.0;
+          }
         } else if (video.preview_status === 'processing') {
           cap = video.hls_required ? 66.7 : 100.0;
         } else if (video.hls_status === 'processing') {
@@ -79,7 +86,7 @@ function QueueItem({
     }, intervalTime);
 
     return () => clearInterval(timer);
-  }, [video.progress, isProcessing, tracker, video.sprite_status, video.preview_status, video.hls_status, video.hls_required]);
+  }, [video.progress, isProcessing, tracker, video.preview_clip_status, video.sprite_status, video.preview_status, video.hls_status, video.hls_required]);
 
   // Round smoothProgress to 1 decimal place for displaying
   const displayProgress = isProcessing ? Math.round(smoothProgress * 10) / 10 : video.progress;
@@ -97,32 +104,81 @@ function QueueItem({
     if (video.status === 'pending') return 'In transcode queue...';
     if (video.status === 'completed') return 'Completed';
     
-    // Inverted Priority Stages: Sprite (Stage 1) -> Preview (Stage 2) -> HLS (Stage 3, optional)
-    if (video.sprite_status === 'processing' || video.sprite_status === 'pending') {
-      const spritePercent = Math.min(100, Math.round((progressVal / (video.hls_required ? 33.3 : 50.0)) * 100.0));
-      const totalStages = video.hls_required ? '1/3' : '1/2';
-      return `Stage ${totalStages}: Generating scrubbing sprite sheet... (${spritePercent}%)`;
+    // 1. Build the active stages list dynamically based on database state
+    const activeStages = [];
+    
+    // Stage 1: Preview Clip (always exists)
+    activeStages.push({
+      key: 'preview_clip',
+      label: 'Creating preview clip metadata & thumbnail',
+      status: video.preview_clip_status,
+      startProgress: 0,
+      endProgress: 5.0
+    });
+    
+    // Stage 2: Sprite Sheet (always exists)
+    const hasPhysicalPreview = ['pending', 'processing', 'completed'].includes(video.preview_status);
+    let spriteEnd = 50.0;
+    if (hasPhysicalPreview) {
+      spriteEnd = video.hls_required ? 33.3 : 50.0;
+    } else {
+      spriteEnd = video.hls_required ? 66.7 : 100.0;
+    }
+    activeStages.push({
+      key: 'sprite',
+      label: 'Generating scrubbing sprite sheet',
+      status: video.sprite_status,
+      startProgress: 5.0,
+      endProgress: spriteEnd
+    });
+    
+    // Stage 3: Physical Preview (optional, exists if not 'not_required')
+    if (hasPhysicalPreview) {
+      const previewEnd = video.hls_required ? 66.7 : 100.0;
+      activeStages.push({
+        key: 'preview',
+        label: 'Generating physical preview clip',
+        status: video.preview_status,
+        startProgress: spriteEnd,
+        endProgress: previewEnd
+      });
     }
     
-    if (video.preview_status === 'processing' || (video.preview_status === 'pending' && video.sprite_status === 'completed')) {
-      const previewDivisor = video.hls_required ? 33.4 : 50.0;
-      const previewStart = video.hls_required ? 33.3 : 50.0;
-      const previewPercent = Math.min(100, Math.round(((progressVal - previewStart) / previewDivisor) * 100.0));
-      const totalStages = video.hls_required ? '2/3' : '2/2';
-      return `Stage ${totalStages}: Generating preview clip & thumbnail... (${previewPercent}%)`;
+    // Stage 4: HLS Transcoding (optional, exists if required)
+    if (video.hls_required) {
+      const hlsStart = hasPhysicalPreview ? 66.7 : spriteEnd;
+      activeStages.push({
+        key: 'hls',
+        label: 'Transcoding HLS segments',
+        status: video.hls_status,
+        startProgress: hlsStart,
+        endProgress: 100.0
+      });
     }
     
-    if (video.hls_status === 'processing' || (video.hls_status === 'pending' && video.preview_status === 'completed')) {
-      if (video.hls_required) {
-        const hlsPercent = Math.min(100, Math.round(((progressVal - 66.7) / 33.3) * 100.0));
-        const remainingPercent = 100 - hlsPercent;
-        return `Stage 3/3: Transcoding HLS (${hlsPercent}% completed, ${remainingPercent}% remaining)`;
-      } else {
-        return 'HLS Transcoding: Skipped';
-      }
+    const totalStages = activeStages.length;
+    
+    // 2. Find which stage is currently active
+    let activeIndex = activeStages.findIndex(s => s.status === 'processing');
+    if (activeIndex === -1) {
+      activeIndex = activeStages.findIndex(s => s.status === 'pending');
+    }
+    if (activeIndex === -1) {
+      activeIndex = totalStages - 1;
     }
     
-    return 'Processing...';
+    const currentStage = activeStages[activeIndex];
+    
+    // 3. Compute stage percentage
+    const stageRange = currentStage.endProgress - currentStage.startProgress;
+    let stagePercent = 0;
+    if (stageRange > 0) {
+      stagePercent = Math.min(100, Math.max(0, Math.round(((progressVal - currentStage.startProgress) / stageRange) * 100.0)));
+    } else {
+      stagePercent = 100;
+    }
+    
+    return `Stage ${activeIndex + 1}/${totalStages}: ${currentStage.label}... (${stagePercent}%)`;
   };
 
   return (

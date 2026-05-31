@@ -8,7 +8,7 @@ from django.http import JsonResponse, FileResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render
 from django.utils.text import slugify
-from .models import Setting, Video
+from .models import Setting, Video, VideoClip
 from .infrastructure.cleaner import FileNameCleaner
 from .infrastructure.magnet_parser import MagnetParser
 from .infrastructure.torrent_downloader import TorrentDownloader
@@ -24,6 +24,16 @@ def get_setting(key, default=""):
 def set_setting(key, value):
     setting, created = Setting.objects.update_or_create(key=key, defaults={'value': value})
     return setting
+
+def get_output_loc():
+    source_loc = get_setting('source_loc')
+    output_loc = get_setting('output_loc')
+    if not output_loc:
+        if source_loc:
+            output_loc = os.path.join(source_loc, 'streamable')
+        else:
+            output_loc = os.path.join(settings.MEDIA_ROOT, 'streamable')
+    return output_loc
 
 @csrf_exempt
 def config_api(request):
@@ -186,9 +196,10 @@ def scan_api(request):
                 original_path=final_path,
                 slug=slug,
                 status='pending',
-                hls_status='pending',
+                hls_status='not_required',
                 sprite_status='pending',
-                preview_status='pending',
+                preview_clip_status='pending',
+                preview_status='not_required',
                 transcode_target=get_setting('default_transcode_target', 'original'),
                 progress=0.0,
                 cleaned_title=clean_res.cleaned_name,
@@ -221,10 +232,18 @@ def videos_list_api(request):
     
     for v in videos:
         # Check if assets are available based on stage completion
-        thumbnail_url = f"{host}/media/streamable/{v.slug}/thumbnail.jpg" if v.preview_status == 'completed' else None
-        preview_url = f"{host}/media/streamable/{v.slug}/preview.mp4" if v.preview_status == 'completed' else None
+        thumbnail_url = f"{host}/media/streamable/{v.slug}/thumbnail.jpg" if v.preview_clip_status == 'completed' else None
         master_playlist_url = f"{host}/media/streamable/{v.slug}/streams/master.m3u8" if v.hls_status == 'completed' else None
         mp4_stream_url = f"{host}/api/videos/{v.id}/mp4_stream"
+        
+        # Check if physical preview is completed, else look for database preview clip
+        preview_url = None
+        if v.preview_status == 'completed':
+            preview_url = f"{host}/media/streamable/{v.slug}/preview.mp4"
+        else:
+            preview_clip = v.clips.filter(category='Preview').first()
+            if preview_clip:
+                preview_url = f"{mp4_stream_url}#t={preview_clip.start_time},{preview_clip.end_time}"
         
         result.append({
             'id': v.id,
@@ -259,8 +278,10 @@ def videos_list_api(request):
             'transcode_target': v.transcode_target,
             'hls_status': v.hls_status,
             'sprite_status': v.sprite_status,
+            'preview_clip_status': v.preview_clip_status,
             'preview_status': v.preview_status,
             'hls_required': v.hls_required,
+            'has_custom_thumbnail': v.has_custom_thumbnail,
         })
         
     return JsonResponse({'videos': result})
@@ -312,8 +333,9 @@ def video_detail_api(request, video_id):
     # Read stream metadata if available
     streams = []
     sprite_info = None
+    output_loc = get_output_loc()
     if v.hls_status == 'completed':
-        streams_meta_path = os.path.join(settings.MEDIA_ROOT, 'streamable', v.slug, 'streams', 'metadata.json')
+        streams_meta_path = os.path.join(output_loc, v.slug, 'streams', 'metadata.json')
         if os.path.exists(streams_meta_path):
             try:
                 with open(streams_meta_path, 'r') as f:
@@ -322,7 +344,7 @@ def video_detail_api(request, video_id):
                 pass
                 
     if v.sprite_status == 'completed':
-        sprite_meta_path = os.path.join(settings.MEDIA_ROOT, 'streamable', v.slug, 'sprite_info.json')
+        sprite_meta_path = os.path.join(output_loc, v.slug, 'sprite_info.json')
         if os.path.exists(sprite_meta_path):
             try:
                 with open(sprite_meta_path, 'r') as f:
@@ -330,12 +352,30 @@ def video_detail_api(request, video_id):
             except Exception:
                 pass
                 
-    thumbnail_url = f"{host}/media/streamable/{v.slug}/thumbnail.jpg" if v.preview_status == 'completed' else None
-    preview_url = f"{host}/media/streamable/{v.slug}/preview.mp4" if v.preview_status == 'completed' else None
+    thumbnail_url = f"{host}/media/streamable/{v.slug}/thumbnail.jpg" if v.preview_clip_status == 'completed' else None
     master_playlist_url = f"{host}/media/streamable/{v.slug}/streams/master.m3u8" if v.hls_status == 'completed' else None
     sprite_url_template = f"{host}/media/streamable/{v.slug}/sprite_%03d.jpg" if v.sprite_status == 'completed' else None
     mp4_stream_url = f"{host}/api/videos/{v.id}/mp4_stream"
     
+    # Check if physical preview is completed, else look for database preview clip
+    preview_url = None
+    if v.preview_status == 'completed':
+        preview_url = f"{host}/media/streamable/{v.slug}/preview.mp4"
+    else:
+        preview_clip = v.clips.filter(category='Preview').first()
+        if preview_clip:
+            preview_url = f"{mp4_stream_url}#t={preview_clip.start_time},{preview_clip.end_time}"
+    
+    # Probe video dynamically for audio tracks list
+    audio_tracks = []
+    if os.path.exists(v.original_path):
+        try:
+            from .infrastructure.transcoder import FFmpegTranscoder
+            info = FFmpegTranscoder.probe_video(v.original_path)
+            audio_tracks = info.get('audio_tracks', [])
+        except Exception as e:
+            logger.error(f"Failed to probe audio tracks for video {v.id}: {e}")
+
     return JsonResponse({
         'id': v.id,
         'title': v.title,
@@ -352,6 +392,7 @@ def video_detail_api(request, video_id):
         'sprite_info': sprite_info,
         'streams': streams,
         'mp4_stream_url': mp4_stream_url,
+        'audio_tracks': audio_tracks,
         'error_message': v.error_message,
         'created_at': v.created_at.isoformat(),
         
@@ -371,8 +412,10 @@ def video_detail_api(request, video_id):
         'transcode_target': v.transcode_target,
         'hls_status': v.hls_status,
         'sprite_status': v.sprite_status,
+        'preview_clip_status': v.preview_clip_status,
         'preview_status': v.preview_status,
         'hls_required': v.hls_required,
+        'has_custom_thumbnail': v.has_custom_thumbnail,
     })
 
 @csrf_exempt
@@ -405,7 +448,8 @@ def video_retry_api(request, video_id):
     video.status = 'pending'
     video.hls_status = 'pending'
     video.sprite_status = 'pending'
-    video.preview_status = 'pending'
+    video.preview_clip_status = 'pending'
+    video.preview_status = 'not_required'
     video.progress = 0.0
     video.error_message = None
     video.save()
@@ -606,6 +650,47 @@ def video_mp4_stream_api(request, video_id):
     if not os.path.exists(v.original_path):
         return JsonResponse({'error': f'Original video file not found on disk: {v.original_path}'}, status=404)
         
+    # Check if a specific audio track was requested
+    track_index = request.GET.get('track')
+    if track_index is not None:
+        try:
+            track_index = int(track_index)
+        except ValueError:
+            track_index = None
+
+    # If track_index is specified, use FFmpeg subprocess to remux the custom track on the fly
+    if track_index is not None and track_index >= 0:
+        import subprocess
+        from django.http import StreamingHttpResponse
+        
+        # Command to copy video and transcode selected audio to AAC for universal browser compatibility
+        cmd = [
+            'ffmpeg', '-y',
+            '-i', v.original_path,
+            '-map', '0:v:0',
+            '-map', f'0:a:{track_index}',
+            '-c:v', 'copy',
+            '-c:a', 'aac',
+            '-f', 'mp4',
+            '-movflags', 'frag_keyframe+empty_moov',
+            'pipe:1'
+        ]
+        
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        
+        def stream_generator():
+            try:
+                while True:
+                    chunk = process.stdout.read(65536) # 64KB chunks
+                    if not chunk:
+                        break
+                    yield chunk
+            finally:
+                process.terminate()
+                
+        response = StreamingHttpResponse(stream_generator(), content_type='video/mp4')
+        return response
+
     # Check if Nginx proxied the request (usually HTTP_X_REAL_IP or HTTP_X_FORWARDED_FOR is set by Nginx)
     is_nginx = 'HTTP_X_REAL_IP' in request.META or 'HTTP_X_FORWARDED_FOR' in request.META
     
@@ -620,4 +705,212 @@ def video_mp4_stream_api(request, video_id):
         # Django fallback (for direct development runs on port 8001 without Nginx)
         response = FileResponse(open(v.original_path, 'rb'), content_type='video/mp4')
         return response
+
+
+@csrf_exempt
+def video_clips_api(request, video_id):
+    """GET to retrieve all clips for a video and all unique categories. POST to save a new clip."""
+    try:
+        video = Video.objects.get(id=video_id)
+    except Video.DoesNotExist:
+        return JsonResponse({'error': 'Video not found'}, status=404)
+
+    if request.method == 'GET':
+        clips = VideoClip.objects.filter(video=video).order_by('start_time')
+        # Retrieve all unique categories in the entire database
+        categories = list(VideoClip.objects.values_list('category', flat=True).distinct())
+        categories = [c for c in categories if c]  # filter out empty ones
+        
+        clips_data = [{
+            'id': c.id,
+            'name': c.name,
+            'start_time': c.start_time,
+            'end_time': c.end_time,
+            'category': c.category,
+            'created_at': c.created_at.isoformat()
+        } for c in clips]
+
+        return JsonResponse({
+            'clips': clips_data,
+            'categories': categories
+        })
+
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            name = data.get('name', '').strip()
+            category = data.get('category', '').strip()
+            start_time = float(data.get('start_time', 0))
+            end_time = float(data.get('end_time', 0))
+
+            if not name:
+                return JsonResponse({'error': 'Clip name cannot be empty'}, status=400)
+            if not category:
+                return JsonResponse({'error': 'Clip category cannot be empty'}, status=400)
+            if start_time < 0:
+                return JsonResponse({'error': 'Start time must be greater than or equal to 0'}, status=400)
+            if end_time <= start_time:
+                return JsonResponse({'error': 'End time must be strictly greater than start time'}, status=400)
+
+            if category == 'Preview':
+                clip, created = VideoClip.objects.update_or_create(
+                    video=video,
+                    category="Preview",
+                    defaults={
+                        'name': name,
+                        'start_time': start_time,
+                        'end_time': end_time
+                    }
+                )
+                
+                # Regenerate thumbnail from new start_time if NOT custom
+                if not video.has_custom_thumbnail:
+                    try:
+                        target_dir = os.path.join(get_output_loc(), video.slug)
+                        from .infrastructure.transcoder import FFmpegTranscoder
+                        FFmpegTranscoder.generate_thumbnail(video.original_path, target_dir, start_time)
+                    except Exception as e:
+                        logger.error(f"Failed to regenerate thumbnail after preview clip update: {e}")
+            else:
+                clip = VideoClip.objects.create(
+                    video=video,
+                    name=name,
+                    category=category,
+                    start_time=start_time,
+                    end_time=end_time
+                )
+
+            return JsonResponse({
+                'success': True,
+                'clip': {
+                    'id': clip.id,
+                    'name': clip.name,
+                    'start_time': clip.start_time,
+                    'end_time': clip.end_time,
+                    'category': clip.category,
+                    'created_at': clip.created_at.isoformat()
+                }
+            })
+        except (json.JSONDecodeError, ValueError, TypeError):
+            return JsonResponse({'error': 'Invalid request data'}, status=400)
+            
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@csrf_exempt
+def delete_clip_api(request, clip_id):
+    """DELETE to remove a video clip by ID."""
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        clip = VideoClip.objects.get(id=clip_id)
+        video = clip.video
+        category = clip.category
+        clip.delete()
+        
+        # If the deleted clip was the Preview clip and has_custom_thumbnail is False,
+        # recreate a default preview clip & thumbnail.
+        if category == 'Preview' and not video.has_custom_thumbnail:
+            try:
+                target_dir = os.path.join(get_output_loc(), video.slug)
+                start_time = video.duration * 0.3 if video.duration > 10 else 1.0
+                from .infrastructure.transcoder import FFmpegTranscoder
+                FFmpegTranscoder.generate_thumbnail(video.original_path, target_dir, start_time)
+                # Recreate database preview clip at start_time
+                VideoClip.objects.create(
+                    video=video,
+                    category="Preview",
+                    name="Preview Clip",
+                    start_time=round(start_time, 1),
+                    end_time=round(start_time + 5.0, 1)
+                )
+            except Exception as e:
+                logger.error(f"Failed to regenerate default preview after deletion: {e}")
+                
+        return JsonResponse({'success': True})
+    except VideoClip.DoesNotExist:
+        return JsonResponse({'error': 'Clip not found'}, status=404)
+
+
+@csrf_exempt
+def video_thumbnail_api(request, video_id):
+    """POST to upload a custom thumbnail. DELETE to revert to the generated one."""
+    import time
+    try:
+        video = Video.objects.get(id=video_id)
+    except Video.DoesNotExist:
+        return JsonResponse({'error': 'Video not found'}, status=404)
+        
+    if request.method == 'POST':
+        if 'file' not in request.FILES:
+            return JsonResponse({'error': 'No file uploaded'}, status=400)
+            
+        file_obj = request.FILES['file']
+        ext = os.path.splitext(file_obj.name)[1].lower()
+        if ext not in ['.jpg', '.jpeg', '.png']:
+            return JsonResponse({'error': 'Unsupported file format. Only JPG, JPEG, and PNG are allowed.'}, status=400)
+            
+        target_dir = os.path.join(get_output_loc(), video.slug)
+        os.makedirs(target_dir, exist_ok=True)
+        
+        thumbnail_path = os.path.join(target_dir, 'thumbnail.jpg')
+        preview_path = os.path.join(target_dir, 'preview.jpg')
+        
+        try:
+            try:
+                from PIL import Image
+                img = Image.open(file_obj)
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    img = img.convert('RGB')
+                img.save(thumbnail_path, 'JPEG', quality=90)
+                img.save(preview_path, 'JPEG', quality=90)
+            except Exception:
+                with open(thumbnail_path, 'wb+') as destination:
+                    for chunk in file_obj.chunks():
+                        destination.write(chunk)
+                shutil.copyfile(thumbnail_path, preview_path)
+                
+            video.has_custom_thumbnail = True
+            video.save()
+            
+            host = request.build_absolute_uri('/')[:-1]
+            return JsonResponse({
+                'success': True, 
+                'thumbnail_url': f"{host}/media/streamable/{video.slug}/thumbnail.jpg?t={int(time.time())}"
+            })
+        except Exception as e:
+            return JsonResponse({'error': f"Failed to save thumbnail: {str(e)}"}, status=500)
+            
+    elif request.method == 'DELETE':
+        target_dir = os.path.join(get_output_loc(), video.slug)
+        thumbnail_path = os.path.join(target_dir, 'thumbnail.jpg')
+        preview_path = os.path.join(target_dir, 'preview.jpg')
+        
+        if os.path.exists(preview_path):
+            try:
+                os.remove(preview_path)
+            except Exception:
+                pass
+                
+        preview_clip = video.clips.filter(category='Preview').first()
+        start_time = preview_clip.start_time if preview_clip else (video.duration * 0.3 if video.duration > 10 else 1.0)
+        
+        try:
+            from .infrastructure.transcoder import FFmpegTranscoder
+            FFmpegTranscoder.generate_thumbnail(video.original_path, target_dir, start_time)
+            video.has_custom_thumbnail = False
+            video.save()
+            
+            host = request.build_absolute_uri('/')[:-1]
+            return JsonResponse({
+                'success': True,
+                'thumbnail_url': f"{host}/media/streamable/{video.slug}/thumbnail.jpg?t={int(time.time())}"
+            })
+        except Exception as e:
+            return JsonResponse({'error': f"Failed to regenerate thumbnail: {str(e)}"}, status=500)
+            
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
 

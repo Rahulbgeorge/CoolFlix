@@ -233,6 +233,6 @@ CRONJOBS = [
     ('*/1 * * * *', 'api.cron.run_transcoder_cron'),
 ]
 # Redirect all cron job stdout and stderr to the dedicated log file
-CRONTAB_COMMAND_SUFFIX = f'>> {os.path.join(LOGS_DIR, "transcoder.log")} 2>&1'
+CRONTAB_COMMAND_SUFFIX = '>> /var/logs/netflix-clone/transcoder.log 2>&1'
 
 

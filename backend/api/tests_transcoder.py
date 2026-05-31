@@ -149,10 +149,12 @@ from django.core.management import call_command
 from api.models import Video
 
 class RunTranscoderCommandTests(TestCase):
+    @patch('fcntl.flock')
     @patch('api.transcoder.VideoProcessor.process_hls_only')
     @patch('api.transcoder.VideoProcessor.process_sprite_only')
     @patch('api.transcoder.VideoProcessor.process_preview_only')
-    def test_run_transcoder_priority_flow(self, mock_preview, mock_sprite, mock_hls):
+    @patch('api.transcoder.VideoProcessor.process_preview_clip_only')
+    def test_run_transcoder_priority_flow(self, mock_preview_clip, mock_preview, mock_sprite, mock_hls, mock_flock):
         # Create 2 pending videos
         v1 = Video.objects.create(
             title="Video 1",
@@ -174,6 +176,13 @@ class RunTranscoderCommandTests(TestCase):
             preview_status="pending",
             hls_required=True
         )
+
+        # Mock Preview Clip side effect: complete preview clip stage
+        def complete_preview_clip(vid_id):
+            video = Video.objects.get(id=vid_id)
+            video.preview_clip_status = 'completed'
+            video.save()
+        mock_preview_clip.side_effect = complete_preview_clip
 
         # Mock Sprite side effect: complete Sprite stage
         def complete_sprite(vid_id):
@@ -202,25 +211,32 @@ class RunTranscoderCommandTests(TestCase):
         call_command('run_transcoder')
 
         # Assertions:
-        # 1. HLS should be processed for both videos first (first priority)
-        self.assertEqual(mock_hls.call_count, 2)
-        mock_hls.assert_any_call(v1.id)
-        mock_hls.assert_any_call(v2.id)
+        # 1. Preview clips should be processed for both videos
+        self.assertEqual(mock_preview_clip.call_count, 2)
+        mock_preview_clip.assert_any_call(v1.id)
+        mock_preview_clip.assert_any_call(v2.id)
 
         # 2. Sprite sheet should be generated next
         self.assertEqual(mock_sprite.call_count, 2)
         mock_sprite.assert_any_call(v1.id)
         mock_sprite.assert_any_call(v2.id)
 
-        # 3. Previews generated last
+        # 3. Previews generated
         self.assertEqual(mock_preview.call_count, 2)
         mock_preview.assert_any_call(v1.id)
         mock_preview.assert_any_call(v2.id)
 
+        # 4. HLS processed
+        self.assertEqual(mock_hls.call_count, 2)
+        mock_hls.assert_any_call(v1.id)
+        mock_hls.assert_any_call(v2.id)
+
+    @patch('fcntl.flock')
     @patch('api.transcoder.VideoProcessor.process_hls_only')
     @patch('api.transcoder.VideoProcessor.process_sprite_only')
     @patch('api.transcoder.VideoProcessor.process_preview_only')
-    def test_run_transcoder_hls_skipped_by_default(self, mock_preview, mock_sprite, mock_hls):
+    @patch('api.transcoder.VideoProcessor.process_preview_clip_only')
+    def test_run_transcoder_hls_skipped_by_default(self, mock_preview_clip, mock_preview, mock_sprite, mock_hls, mock_flock):
         # Create a pending video with hls_required=False (default)
         v = Video.objects.create(
             title="Video Default",
@@ -232,6 +248,13 @@ class RunTranscoderCommandTests(TestCase):
             preview_status="pending",
             hls_required=False
         )
+
+        # Mock Preview Clip: complete preview clip stage
+        def complete_preview_clip(vid_id):
+            video = Video.objects.get(id=vid_id)
+            video.preview_clip_status = 'completed'
+            video.save()
+        mock_preview_clip.side_effect = complete_preview_clip
 
         # Mock Sprite: complete Sprite stage and set progress
         def complete_sprite(vid_id):
@@ -256,6 +279,7 @@ class RunTranscoderCommandTests(TestCase):
 
         # Assertions:
         # Sprite sheet and preview generated
+        self.assertEqual(mock_preview_clip.call_count, 1)
         self.assertEqual(mock_sprite.call_count, 1)
         self.assertEqual(mock_preview.call_count, 1)
         # HLS is skipped, so mock_hls must not be called
@@ -266,4 +290,50 @@ class RunTranscoderCommandTests(TestCase):
         self.assertEqual(v.status, 'completed')
         self.assertEqual(v.hls_status, 'skipped')
         self.assertEqual(v.progress, 100.0)
+
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
+
+class VideoThumbnailAPITests(TestCase):
+    def setUp(self):
+        self.video = Video.objects.create(
+            title="Test Thumbnail Video",
+            original_path="/path/test_thumb.mp4",
+            slug="test-thumb-video",
+            status="completed",
+            duration=100.0
+        )
+        
+    @patch('api.infrastructure.transcoder.FFmpegTranscoder.generate_thumbnail')
+    def test_upload_custom_thumbnail(self, mock_generate):
+        # Create a mock image file
+        image_file = SimpleUploadedFile(
+            "test.jpg", 
+            b"file_content", 
+            content_type="image/jpeg"
+        )
+        
+        # Call the endpoint
+        url = reverse('video_thumbnail_api', args=[self.video.id])
+        response = self.client.post(url, {'file': image_file})
+        
+        self.assertEqual(response.status_code, 200)
+        self.video.refresh_from_db()
+        self.assertTrue(self.video.has_custom_thumbnail)
+        
+    @patch('api.infrastructure.transcoder.FFmpegTranscoder.generate_thumbnail')
+    def test_delete_custom_thumbnail(self, mock_generate):
+        self.video.has_custom_thumbnail = True
+        self.video.save()
+        
+        # Call delete
+        url = reverse('video_thumbnail_api', args=[self.video.id])
+        response = self.client.delete(url)
+        
+        self.assertEqual(response.status_code, 200)
+        self.video.refresh_from_db()
+        self.assertFalse(self.video.has_custom_thumbnail)
+        mock_generate.assert_called_once()
+
 

@@ -964,3 +964,176 @@ input {
   max-width: 400px;
   margin-bottom: 24px;
 }
+
+/* Edit Mode Sidebar */
+.edit-sidebar {
+  width: 350px;
+  background-color: #141414;
+  border-left: 1px solid #2b2b2b;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 24px;
+  overflow-y: auto;
+  color: #fff;
+  z-index: 100;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease;
+}
+
+.edit-sidebar h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent-red);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #2b2b2b;
+}
+
+.edit-time-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: rgba(255, 255, 255, 0.03);
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.edit-time-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ccc;
+}
+
+.edit-sidebar-btn {
+  background-color: var(--accent-red);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.edit-sidebar-btn:hover {
+  background-color: var(--accent-red-hover);
+}
+
+.edit-input {
+  background-color: #222;
+  border: 1px solid #333;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+  width: 100%;
+}
+
+.edit-input:focus {
+  border-color: var(--accent-red);
+}
+
+.clips-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+  margin-bottom: 12px;
+}
+
+.clips-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.clip-item {
+  background-color: #202020;
+  border: 1px solid #2d2d2d;
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.clip-item:hover {
+  background-color: #282828;
+  border-color: #444;
+}
+
+.clip-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 80%;
+}
+
+.clip-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.clip-item-category {
+  font-size: 10px;
+  text-transform: uppercase;
+  background-color: rgba(229, 9, 20, 0.15);
+  color: var(--accent-red);
+  padding: 2px 6px;
+  border-radius: 4px;
+  width: fit-content;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.clip-item-time {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 2px;
+}
+
+.clip-delete-btn {
+  background: transparent;
+  color: #888;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.clip-delete-btn:hover {
+  color: var(--accent-red);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.edit-error-msg {
+  font-size: 12px;
+  color: #ff4a53;
+  background-color: rgba(229, 9, 20, 0.1);
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(229, 9, 20, 0.2);
+}
+

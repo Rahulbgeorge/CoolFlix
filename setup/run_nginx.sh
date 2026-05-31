@@ -4,7 +4,6 @@
 # Get current script directory and project root
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-NGINX_CONF="$SCRIPT_DIR/nginx.conf"
 NGINX_RESOLVED_CONF="$SCRIPT_DIR/nginx_resolved.conf"
 PID_FILE="$SCRIPT_DIR/nginx.pid"
 
@@ -16,9 +15,19 @@ if ! command -v nginx &> /dev/null; then
     exit 1
 fi
 
-# Generate dynamic resolved configuration replacing the hardcoded project directory
-echo "Generating resolved Nginx configuration at $NGINX_RESOLVED_CONF..."
-sed "s|/home/eleven/projects/CoolFlix|$PROJECT_DIR|g" "$NGINX_CONF" > "$NGINX_RESOLVED_CONF"
+# Detect operating system and generate resolved configuration
+OS_TYPE="$(uname)"
+if [ "$OS_TYPE" = "Darwin" ]; then
+    echo "Detected macOS..."
+    NGINX_CONF="$SCRIPT_DIR/coolflix_mac_nginx.conf"
+    echo "Generating resolved Nginx configuration at $NGINX_RESOLVED_CONF..."
+    sed "s|/Users/rahulbg/netflix-clone|$PROJECT_DIR|g" "$NGINX_CONF" > "$NGINX_RESOLVED_CONF"
+else
+    echo "Detected Linux..."
+    NGINX_CONF="$SCRIPT_DIR/coolflix_lin_nginx.conf"
+    echo "Generating resolved Nginx configuration at $NGINX_RESOLVED_CONF..."
+    sed "s|/home/eleven/projects/CoolFlix|$PROJECT_DIR|g" "$NGINX_CONF" > "$NGINX_RESOLVED_CONF"
+fi
 
 # Stop any running Nginx using this configuration's PID file
 if [ -f "$PID_FILE" ]; then

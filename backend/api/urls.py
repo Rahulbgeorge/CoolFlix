@@ -12,4 +12,7 @@ urlpatterns = [
     path('download-magnet', views.download_magnet_api, name='download_magnet_api'),
     path('download-status', views.download_status_api, name='download_status_api'),
     path('delete-torrent', views.delete_torrent_api, name='delete_torrent_api'),
+    path('videos/<int:video_id>/clips', views.video_clips_api, name='video_clips_api'),
+    path('videos/clips/<int:clip_id>', views.delete_clip_api, name='delete_clip_api'),
+    path('videos/<int:video_id>/thumbnail', views.video_thumbnail_api, name='video_thumbnail_api'),
 ]
