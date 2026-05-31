@@ -12,6 +12,7 @@ export class ConnectionManager {
     this.checkInterval = null;
     this.isChecking = false;
     this.lastLocalFailureTime = 0;      // Track timestamp of last local connection failure
+    window.activeApiBaseUrl = null;     // Initialize global API base URL variable
   }
 
   /**
@@ -94,6 +95,7 @@ export class ConnectionManager {
           if (this.currentBaseUrl !== localUrl) {
             console.log(`ConnectionManager: Switching to LOCAL IP PERMANENTLY: ${localUrl}`);
             this.currentBaseUrl = localUrl;
+            window.activeApiBaseUrl = localUrl; // Enable local base URL globally
             this.stop(); // Stop future checks once successfully reached!
             if (this.onUrlChange) {
               this.onUrlChange(localUrl);
@@ -104,6 +106,7 @@ export class ConnectionManager {
           if (this.currentBaseUrl !== this.defaultDomain) {
             console.log(`ConnectionManager: Reverting to DEFAULT domain (local not reachable/not same network): ${this.defaultDomain}`);
             this.currentBaseUrl = this.defaultDomain;
+            window.activeApiBaseUrl = null; // Disable local base URL globally
             if (this.onUrlChange) {
               this.onUrlChange(this.defaultDomain);
             }
@@ -118,6 +121,7 @@ export class ConnectionManager {
         // Set lastLocalFailureTime so that we back off immediately from retrying
         this.lastLocalFailureTime = Date.now();
         this.currentBaseUrl = this.defaultDomain;
+        window.activeApiBaseUrl = null; // Disable local base URL globally
         if (this.onUrlChange) {
           this.onUrlChange(this.defaultDomain);
         }

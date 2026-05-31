@@ -6,6 +6,7 @@ import SettingsModal from './components/SettingsModal';
 import VideoPlayer from './components/VideoPlayer';
 import Downloader from './components/Downloader';
 import { ConnectionManager } from './utils/connectionManager';
+import { ApiInterceptor } from './utils/apiInterceptor';
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -18,6 +19,11 @@ export default function App() {
       ? `${window.location.protocol}//${window.location.hostname}:8000`
       : window.location.origin
   );
+
+  // Initialize generic HTTP / fetch API interceptor
+  useEffect(() => {
+    ApiInterceptor.initialize();
+  }, []);
 
   // Setup ConnectionManager for local network detection and auto-failover
   useEffect(() => {
