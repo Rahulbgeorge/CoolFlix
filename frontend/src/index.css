@@ -1372,3 +1372,50 @@ input {
   }
 }
 
+/* ==========================================================================
+   TV SPATIAL NAVIGATION & DPAD REMOTE FOCUS STYLES
+   ========================================================================== */
+
+/* Disable browser default focus outlines for native TV experience */
+:focus, :focus-visible, button:focus, input:focus, select:focus, a:focus {
+  outline: none !important;
+}
+
+/* Premium TV Focus Indicator */
+.nav-focused {
+  outline: none !important;
+  box-shadow: 0 0 0 3px var(--accent-red), 0 0 25px var(--accent-red) !important;
+  transform: scale(1.06) !important;
+  z-index: 100 !important;
+  transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+}
+
+/* Custom adjustments for focused interactive elements */
+.navbar-link.nav-focused {
+  color: var(--text-main) !important;
+  padding: 4px 10px !important;
+  border-radius: 4px !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.btn.nav-focused {
+  background-color: var(--accent-red) !important;
+  color: #fff !important;
+}
+
+.video-card.nav-focused {
+  box-shadow: 0 0 0 4px var(--accent-red), 0 0 30px var(--accent-red) !important;
+}
+
+.form-input.nav-focused {
+  border-color: var(--accent-red) !important;
+  background-color: #2b2b2b !important;
+}
+
+.player-btn.nav-focused {
+  color: #fff !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border-radius: 50% !important;
+}
+
+

@@ -157,7 +157,7 @@ export default function SettingsModal({ isOpen, onClose, apiBaseUrl, onScanCompl
   return (
     <div className="modal-overlay">
       <div className="modal-content">
-        <button className="modal-close" onClick={onClose}>
+        <button className="modal-close focusable" onClick={onClose}>
           <X size={20} />
         </button>
         <h3 className="modal-title">Settings</h3>
@@ -197,7 +197,7 @@ export default function SettingsModal({ isOpen, onClose, apiBaseUrl, onScanCompl
                 <input
                   id="source-loc"
                   type="text"
-                  className="form-input"
+                  className="form-input focusable"
                   placeholder="e.g. /Users/username/Videos"
                   value={sourceLoc}
                   onChange={(e) => {
@@ -231,7 +231,7 @@ export default function SettingsModal({ isOpen, onClose, apiBaseUrl, onScanCompl
                 <input
                   id="output-loc"
                   type="text"
-                  className="form-input"
+                  className="form-input focusable"
                   placeholder="e.g. /Users/username/Videos/streamable"
                   value={outputLoc}
                   onChange={(e) => {
@@ -260,7 +260,7 @@ export default function SettingsModal({ isOpen, onClose, apiBaseUrl, onScanCompl
               </label>
               <select
                 id="default-quality"
-                className="form-input"
+                className="form-input focusable"
                 value={defaultTranscodeTarget}
                 onChange={(e) => setDefaultTranscodeTarget(e.target.value)}
                 style={{
@@ -283,13 +283,13 @@ export default function SettingsModal({ isOpen, onClose, apiBaseUrl, onScanCompl
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={saving}>
+              <button type="submit" className="btn btn-primary focusable" style={{ width: '100%' }} disabled={saving}>
                 {saving ? 'Saving...' : 'Save Settings'}
               </button>
               
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn btn-secondary focusable"
                 style={{ width: '100%' }}
                 onClick={handleScan}
                 disabled={scanning || !sourceLoc}
@@ -338,7 +338,7 @@ export default function SettingsModal({ isOpen, onClose, apiBaseUrl, onScanCompl
               </div>
             ) : (
               <label 
-                className="btn btn-secondary" 
+                className="btn btn-secondary focusable" 
                 style={{ 
                   display: 'flex', 
                   flexDirection: 'column', 

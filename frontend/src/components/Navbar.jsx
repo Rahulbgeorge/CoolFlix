@@ -19,13 +19,13 @@ export default function Navbar({ activeTab, onNavigate }) {
   return (
     <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
-        <a href="#" className="navbar-brand" onClick={(e) => { e.preventDefault(); onNavigate('/'); }}>
+        <a href="#" className="navbar-brand focusable" onClick={(e) => { e.preventDefault(); onNavigate('/'); }}>
           Netflix
         </a>
         <div className="navbar-links">
           <a
             href="#"
-            className={`navbar-link ${activeTab === 'browse' ? 'active' : ''}`}
+            className={`navbar-link focusable ${activeTab === 'browse' ? 'active' : ''}`}
             onClick={(e) => {
               e.preventDefault();
               onNavigate('/');
@@ -37,7 +37,7 @@ export default function Navbar({ activeTab, onNavigate }) {
           </a>
           <a
             href="#"
-            className={`navbar-link ${activeTab === 'queue' ? 'active' : ''}`}
+            className={`navbar-link focusable ${activeTab === 'queue' ? 'active' : ''}`}
             onClick={(e) => {
               e.preventDefault();
               onNavigate('/queue');
@@ -49,7 +49,7 @@ export default function Navbar({ activeTab, onNavigate }) {
           </a>
           <a
             href="#"
-            className={`navbar-link ${activeTab === 'downloader' ? 'active' : ''}`}
+            className={`navbar-link focusable ${activeTab === 'downloader' ? 'active' : ''}`}
             onClick={(e) => {
               e.preventDefault();
               onNavigate('/downloader');
@@ -63,7 +63,7 @@ export default function Navbar({ activeTab, onNavigate }) {
       </div>
       <div className="navbar-links">
         <button
-          className="navbar-link"
+          className="navbar-link focusable"
           onClick={() => onNavigate('/settings')}
           style={{ background: 'transparent', display: 'flex', alignItems: 'center', gap: '6px' }}
           title="Configure settings"

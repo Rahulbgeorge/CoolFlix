@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Play } from 'lucide-react';
 
 export default function VideoCard({ video, onPlay, onSelectRow }) {
   const [hovered, setHovered] = useState(false);
   const hoverTimeout = useRef(null);
   const videoRef = useRef(null);
+  const cardRef = useRef(null);
 
   const isPlayable = true;
 
@@ -31,6 +32,27 @@ export default function VideoCard({ video, onPlay, onSelectRow }) {
     }
   };
 
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+
+    const onNavFocus = () => {
+      handleMouseEnter();
+    };
+
+    const onNavBlur = () => {
+      handleMouseLeave();
+    };
+
+    el.addEventListener('nav-focus', onNavFocus);
+    el.addEventListener('nav-blur', onNavBlur);
+
+    return () => {
+      el.removeEventListener('nav-focus', onNavFocus);
+      el.removeEventListener('nav-blur', onNavBlur);
+    };
+  }, [video.preview_url]);
+
   const formatDuration = (seconds) => {
     if (!seconds) return '0:00';
     const h = Math.floor(seconds / 3600);
@@ -54,7 +76,8 @@ export default function VideoCard({ video, onPlay, onSelectRow }) {
 
   return (
     <div
-      className="video-card"
+      ref={cardRef}
+      className="video-card focusable"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}

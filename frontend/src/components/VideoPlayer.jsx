@@ -214,6 +214,26 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
     };
   }, [fetchVideoData]);
 
+  // Handle TV remote scrubber seeking
+  useEffect(() => {
+    const el = timelineRef.current;
+    if (!el) return;
+
+    const onNavSeek = (e) => {
+      const direction = e.detail.direction;
+      if (direction === 'left') {
+        skipTime(-10);
+      } else if (direction === 'right') {
+        skipTime(10);
+      }
+    };
+
+    el.addEventListener('nav-seek', onNavSeek);
+    return () => {
+      el.removeEventListener('nav-seek', onNavSeek);
+    };
+  }, [duration]);
+
   // Initialize HLS
   useEffect(() => {
     if (!videoData || !videoRef.current) return;
@@ -661,7 +681,7 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
         
         {/* Top Header */}
         <div className="player-top-bar">
-          <button className="player-back-btn" onClick={onClose}>
+          <button className="player-back-btn focusable" onClick={onClose}>
             <ArrowLeft size={24} />
           </button>
           <span className="player-video-title">{videoData.title}</span>
@@ -669,15 +689,15 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
 
         {/* Center play controls for quick triggers */}
         <div className="player-center-controls">
-          <button className="center-btn" onClick={() => skipTime(-10)} title="Rewind 10s">
+          <button className="center-btn focusable" onClick={() => skipTime(-10)} title="Rewind 10s">
             <RotateCcw size={32} />
           </button>
           
-          <button className="center-btn center-play-btn" onClick={togglePlay}>
+          <button className="center-btn center-play-btn focusable" onClick={togglePlay}>
             {playing ? <Pause size={38} fill="#fff" /> : <Play size={38} fill="#fff" style={{ marginLeft: '4px' }} />}
           </button>
           
-          <button className="center-btn" onClick={() => skipTime(10)} title="Forward 10s">
+          <button className="center-btn focusable" onClick={() => skipTime(10)} title="Forward 10s">
             <RotateCw size={32} />
           </button>
         </div>
@@ -687,7 +707,7 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
           
           {/* Timeline Scrubber */}
           <div
-            className="player-timeline-wrapper"
+            className="player-timeline-wrapper focusable"
             ref={timelineRef}
             onClick={handleTimelineAction}
             onMouseMove={handleTimelineMouseMove}
@@ -714,21 +734,21 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
           <div className="player-controls-row">
             <div className="controls-left">
               {/* Play Pause */}
-              <button className="player-btn" onClick={togglePlay}>
+              <button className="player-btn focusable" onClick={togglePlay}>
                 {playing ? <Pause size={20} /> : <Play size={20} />}
               </button>
 
               {/* Rewind/Forward */}
-              <button className="player-btn" onClick={() => skipTime(-10)} title="Rewind 10s">
+              <button className="player-btn focusable" onClick={() => skipTime(-10)} title="Rewind 10s">
                 <RotateCcw size={20} />
               </button>
-              <button className="player-btn" onClick={() => skipTime(10)} title="Forward 10s">
+              <button className="player-btn focusable" onClick={() => skipTime(10)} title="Forward 10s">
                 <RotateCw size={20} />
               </button>
 
               {/* Volume Slider */}
               <div className="volume-wrapper">
-                <button className="player-btn" onClick={toggleMute}>
+                <button className="player-btn focusable" onClick={toggleMute}>
                   {muted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
                 </button>
                 <div className={`volume-slider-container ${volume > 0 && !muted ? 'active' : ''}`}>
@@ -755,7 +775,7 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
               {qualities.length > 0 && (
                 <div className="popover-menu-wrapper">
                   <button
-                    className="player-btn"
+                    className="player-btn focusable"
                     onClick={() => {
                       setShowQualityMenu(!showQualityMenu);
                       setShowSpeedMenu(false);
@@ -776,7 +796,7 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
                       {qualities.map((q) => (
                         <button
                           key={q.index}
-                          className={`popover-item ${
+                          className={`popover-item focusable ${
                             q.index === currentQualityIdx ? 'active' : ''
                           }`}
                           onClick={() => selectQuality(q.index)}
@@ -792,7 +812,7 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
               {/* Playback Speed */}
               <div className="popover-menu-wrapper">
                 <button
-                  className="player-btn"
+                  className="player-btn focusable"
                   onClick={() => {
                     setShowSpeedMenu(!showSpeedMenu);
                     setShowQualityMenu(false);
@@ -809,7 +829,7 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
                     {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
                       <button
                         key={speed}
-                        className={`popover-item ${playbackSpeed === speed ? 'active' : ''}`}
+                        className={`popover-item focusable ${playbackSpeed === speed ? 'active' : ''}`}
                         onClick={() => selectSpeed(speed)}
                       >
                         {speed}x
@@ -824,7 +844,7 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
               {audioTracks.length > 1 && hlsRef.current && (
                 <div className="popover-menu-wrapper">
                   <button
-                    className="player-btn"
+                    className="player-btn focusable"
                     onClick={() => {
                       setShowLanguageMenu(!showLanguageMenu);
                       setShowQualityMenu(false);
@@ -843,7 +863,7 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
                       {audioTracks.map((t) => (
                         <button
                           key={t.index}
-                          className={`popover-item ${t.index === currentAudioTrackIdx ? 'active' : ''}`}
+                          className={`popover-item focusable ${t.index === currentAudioTrackIdx ? 'active' : ''}`}
                           onClick={() => {
                             handleAudioTrackChange(t.index);
                             setShowLanguageMenu(false);
@@ -859,7 +879,7 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
 
               {/* Edit Mode Toggle */}
               <button
-                className={`player-btn ${isEditMode ? 'active' : ''}`}
+                className={`player-btn focusable ${isEditMode ? 'active' : ''}`}
                 onClick={() => {
                   setIsEditMode(!isEditMode);
                   if (!isEditMode && playing) {
@@ -873,7 +893,7 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
               </button>
 
               {/* Fullscreen */}
-              <button className="player-btn" onClick={toggleFullscreen}>
+              <button className="player-btn focusable" onClick={toggleFullscreen}>
                 {fullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
               </button>
             </div>

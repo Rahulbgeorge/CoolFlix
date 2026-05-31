@@ -89,11 +89,11 @@ export default function Dashboard({ videos, onPlay, onOpenSettings, onSwitchTab 
               complete with interactive scrubber previews, multiple quality channels, and responsive playback speeds.
             </p>
             <div className="hero-btn-row">
-              <button className="btn btn-primary" onClick={() => onPlay(featuredVideo)}>
+              <button className="btn btn-primary focusable" onClick={() => onPlay(featuredVideo)}>
                 <Play size={18} fill="currentColor" />
                 Play
               </button>
-              <button className="btn btn-secondary" onClick={() => onSwitchTab('queue')}>
+              <button className="btn btn-secondary focusable" onClick={() => onSwitchTab('queue')}>
                 <Info size={18} />
                 Transcode Info
               </button>
@@ -121,7 +121,7 @@ export default function Dashboard({ videos, onPlay, onOpenSettings, onSwitchTab 
               and scan for videos to begin transcoding.
             </p>
             <div className="hero-btn-row">
-              <button className="btn btn-primary" onClick={onOpenSettings}>
+              <button className="btn btn-primary focusable" onClick={onOpenSettings}>
                 <Settings size={18} />
                 Configure Source Loc
               </button>
