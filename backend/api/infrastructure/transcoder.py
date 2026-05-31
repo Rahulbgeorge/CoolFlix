@@ -152,10 +152,23 @@ class FFmpegTranscoder:
             sprite_template
         ]
         print(f"Executing FFmpeg command (Sprite Sheet): {' '.join(cmd)}")
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        log_path = os.path.join(target_dir, 'sprite_generation.log')
+        try:
+            with open(log_path, 'w') as log_file:
+                result = subprocess.run(cmd, stdout=log_file, stderr=log_file)
+        except Exception as e:
+            logger.error(f"Failed to execute sprite command: {e}")
+            raise
+            
         if result.returncode != 0:
-            logger.error(f"Failed to generate sprite sheets: {result.stderr.decode()}")
-            raise Exception("FFmpeg sprite sheet generation failed")
+            try:
+                with open(log_path, 'r') as log_file:
+                    lines = log_file.readlines()
+                    error_log = "".join(lines[-15:])
+            except Exception:
+                error_log = "Check sprite_generation.log inside target directory."
+            logger.error(f"Failed to generate sprite sheets: {error_log}")
+            raise Exception(f"FFmpeg sprite sheet generation failed. Log: {error_log}")
             
         # Write metadata file for front-end parsing
         metadata = {
@@ -247,10 +260,23 @@ class FFmpegTranscoder:
         print(f"Executing FFmpeg command (Original Conversion): {' '.join(cmd)}")
         logger.info(f"Executing FFmpeg command (Original Conversion): {' '.join(cmd)}")
         
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        log_path = os.path.join(target_dir, 'original_conversion.log')
+        try:
+            with open(log_path, 'w') as log_file:
+                result = subprocess.run(cmd, stdout=log_file, stderr=log_file)
+        except Exception as e:
+            logger.error(f"Failed to execute original conversion command: {e}")
+            raise
+            
         if result.returncode != 0:
-            logger.error(f"Failed to generate streamable copy: {result.stderr.decode()}")
-            raise Exception("FFmpeg original conversion failed")
+            try:
+                with open(log_path, 'r') as log_file:
+                    lines = log_file.readlines()
+                    error_log = "".join(lines[-15:])
+            except Exception:
+                error_log = "Check original_conversion.log inside target directory."
+            logger.error(f"Failed to generate streamable copy: {error_log}")
+            raise Exception(f"FFmpeg original conversion failed. Log: {error_log}")
             
         return output_path
 
@@ -521,11 +547,13 @@ class FFmpegTranscoder:
         
         cmd += [
             '-f', 'hls',
-            '-hls_time', '6',
-            '-hls_playlist_type', 'event',
+            '-hls_time', '4',
+            '-hls_playlist_type', 'vod',
+            '-start_number', '0',
+            '-hls_list_size', '0',
             '-master_pl_name', 'master.m3u8',
             '-var_stream_map', var_stream_map,
-            '-hls_segment_filename', os.path.join(streams_dir, 'stream_%v', 'data%03d.ts'),
+            '-hls_segment_filename', os.path.join(streams_dir, 'stream_%v', 'segment_%05d.ts'),
             os.path.join(streams_dir, 'stream_%v', 'playlist.m3u8')
         ]
 

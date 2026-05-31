@@ -258,9 +258,8 @@ class VideoProcessor:
                 preview_clip = video.clips.filter(category='Preview').first()
                 start_time = preview_clip.start_time if preview_clip else (video.duration * 0.3)
                 
-                # Extract preview from the streamable faststart original.mp4 copy
-                streamable_path = os.path.join(target_dir, 'original.mp4')
-                input_path = streamable_path if os.path.exists(streamable_path) else video.original_path
+                # Extract preview directly from the original movie file
+                input_path = video.original_path
                 
                 FFmpegTranscoder.generate_preview(input_path, target_dir, start_time)
                 video.preview_status = 'completed'

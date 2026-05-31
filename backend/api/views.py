@@ -196,6 +196,7 @@ def scan_api(request):
                 original_path=final_path,
                 slug=slug,
                 status='pending',
+                streamable_copy_status='not_required',
                 hls_status='pending',
                 hls_required=True,
                 sprite_status='pending',
@@ -216,18 +217,9 @@ def scan_api(request):
                 is_series=clean_res.is_series
             )
             
-            # Create symlink to original video inside the streamable folder
-            # so Nginx can serve it directly with range request support
+            # Ensure the output directory exists for thumbnails and sprites
             video_output_dir = os.path.join(output_loc, slug)
             os.makedirs(video_output_dir, exist_ok=True)
-            symlink_path = os.path.join(video_output_dir, 'original.mp4')
-            try:
-                if os.path.islink(symlink_path):
-                    os.unlink(symlink_path)  # Remove stale symlink
-                if not os.path.exists(symlink_path):
-                    os.symlink(os.path.abspath(final_path), symlink_path)
-            except Exception as sym_err:
-                logger.warning(f"Could not create symlink for {slug}: {sym_err}")
             
             new_videos_count += 1
             
@@ -248,8 +240,7 @@ def videos_list_api(request):
         # Check if assets are available based on stage completion
         thumbnail_url = f"{host}/media/streamable/{v.slug}/thumbnail.jpg" if v.preview_clip_status == 'completed' else None
         master_playlist_url = f"{host}/media/streamable/{v.slug}/streams/master.m3u8" if v.hls_status == 'completed' else None
-        # Direct Nginx-served URL for original video (symlinked during scan)
-        original_file_url = f"{host}/media/streamable/{v.slug}/original.mp4"
+        original_file_url = None
         
         # Check if physical preview is completed, else look for database preview clip
         preview_url = None
@@ -258,7 +249,7 @@ def videos_list_api(request):
         else:
             preview_clip = v.clips.filter(category='Preview').first()
             if preview_clip:
-                preview_url = f"{original_file_url}#t={preview_clip.start_time},{preview_clip.end_time}"
+                preview_url = f"{master_playlist_url}#t={preview_clip.start_time},{preview_clip.end_time}" if master_playlist_url else None
         
         result.append({
             'id': v.id,
@@ -371,8 +362,7 @@ def video_detail_api(request, video_id):
     thumbnail_url = f"{host}/media/streamable/{v.slug}/thumbnail.jpg" if v.preview_clip_status == 'completed' else None
     master_playlist_url = f"{host}/media/streamable/{v.slug}/streams/master.m3u8" if v.hls_status == 'completed' else None
     sprite_url_template = f"{host}/media/streamable/{v.slug}/sprite_%03d.jpg" if v.sprite_status == 'completed' else None
-    # Direct Nginx-served URL for original video (symlinked during scan)
-    original_file_url = f"{host}/media/streamable/{v.slug}/original.mp4"
+    original_file_url = None
     
     # Check if physical preview is completed, else look for database preview clip
     preview_url = None
@@ -381,7 +371,7 @@ def video_detail_api(request, video_id):
     else:
         preview_clip = v.clips.filter(category='Preview').first()
         if preview_clip:
-            preview_url = f"{original_file_url}#t={preview_clip.start_time},{preview_clip.end_time}"
+            preview_url = f"{master_playlist_url}#t={preview_clip.start_time},{preview_clip.end_time}" if master_playlist_url else None
     
     # Probe video dynamically for audio tracks list
     # TODO Phase 2: Once per-track audio files are generated (e.g. video_eng.mp4, video_tamil.mp4),
