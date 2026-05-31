@@ -62,7 +62,7 @@ export class ConnectionManager {
         let localUrl = null;
 
         if (this.serverLocalIp) {
-          localUrl = `${window.location.protocol}//${this.serverLocalIp}:8000`;
+          localUrl = `http://${this.serverLocalIp}:8000`;
           
           // Optimization: If the current active URL is already the local IP, and the fetch succeeded above,
           // it is obviously reachable. Bypassing redundant ping to avoid transient timeout reverts.
