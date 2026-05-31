@@ -21,12 +21,12 @@ if [ "$OS_TYPE" = "Darwin" ]; then
     echo "Detected macOS..."
     NGINX_CONF="$SCRIPT_DIR/coolflix_mac_nginx.conf"
     echo "Generating resolved Nginx configuration at $NGINX_RESOLVED_CONF..."
-    sed "s|/Users/rahulbg/netflix-clone|$PROJECT_DIR|g" "$NGINX_CONF" > "$NGINX_RESOLVED_CONF"
+    sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g" "$NGINX_CONF" > "$NGINX_RESOLVED_CONF"
 else
     echo "Detected Linux..."
     NGINX_CONF="$SCRIPT_DIR/coolflix_lin_nginx.conf"
     echo "Generating resolved Nginx configuration at $NGINX_RESOLVED_CONF..."
-    sed "s|/home/eleven/projects/CoolFlix|$PROJECT_DIR|g" "$NGINX_CONF" > "$NGINX_RESOLVED_CONF"
+    sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g" "$NGINX_CONF" > "$NGINX_RESOLVED_CONF"
 fi
 
 # Stop any running Nginx using this configuration's PID file

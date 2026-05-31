@@ -87,7 +87,7 @@ export default function App() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchVideos();
-  }, [fetchVideos]);
+  }, [fetchVideos, activeTab]);
 
   // Redirect to browse if video path is visited but slug is invalid after load
   useEffect(() => {
@@ -103,8 +103,10 @@ export default function App() {
     }
   }, [loading, currentPath, videos]);
 
-  // Poll for transcoding status in the background if there are pending or processing items
+  // Poll for transcoding status in the background if there are pending or processing items and the transcoding page is active
   useEffect(() => {
+    if (activeTab !== 'queue') return;
+
     const hasActiveTranscodes = videos.some(
       (v) => v.status === 'processing' || v.status === 'pending' || v.hls_status === 'processing' || v.hls_status === 'pending'
     );
@@ -116,7 +118,7 @@ export default function App() {
     }, 2000); // Poll every 2 seconds for smooth UI updates
 
     return () => clearInterval(interval);
-  }, [videos, fetchVideos]);
+  }, [videos, fetchVideos, activeTab]);
 
   const handleScanComplete = () => {
     fetchVideos();

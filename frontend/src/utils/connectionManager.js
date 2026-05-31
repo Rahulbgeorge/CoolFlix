@@ -53,14 +53,22 @@ export class ConnectionManager {
       if (response.ok) {
         const data = await response.json();
         this.serverLocalIp = data.server_local_ip;
-        this.sameNetwork = data.same_network;
+        
+        // Active probing: Test if the client can hit the server's local IP on port 8000 directly.
+        // This is 100% reliable for same local network detection, regardless of client IPv4/IPv6 format.
+        let isLocalReachable = false;
+        let localUrl = null;
 
-        if (this.sameNetwork && this.serverLocalIp) {
-          const localUrl = `${window.location.protocol}//${this.serverLocalIp}:8000`;
-          
-          // Test local connection directly
-          const localWorking = await this.testUrl(localUrl);
-          if (localWorking && this.currentBaseUrl !== localUrl) {
+        if (this.serverLocalIp) {
+          localUrl = `${window.location.protocol}//${this.serverLocalIp}:8000`;
+          isLocalReachable = await this.testUrl(localUrl);
+        }
+
+        const sameNetworkDetected = data.same_network || isLocalReachable;
+        this.sameNetwork = sameNetworkDetected;
+
+        if (sameNetworkDetected && localUrl && isLocalReachable) {
+          if (this.currentBaseUrl !== localUrl) {
             console.log(`ConnectionManager: Switching to LOCAL IP: ${localUrl}`);
             this.currentBaseUrl = localUrl;
             if (this.onUrlChange) {
@@ -68,9 +76,9 @@ export class ConnectionManager {
             }
           }
         } else {
-          // If we are no longer on the same network but using local IP, revert to public domain
+          // If we are no longer on the same network or local IP is not reachable, revert to default domain
           if (this.currentBaseUrl !== this.defaultDomain) {
-            console.log(`ConnectionManager: Reverting to DEFAULT domain (not same network): ${this.defaultDomain}`);
+            console.log(`ConnectionManager: Reverting to DEFAULT domain (local not reachable/not same network): ${this.defaultDomain}`);
             this.currentBaseUrl = this.defaultDomain;
             if (this.onUrlChange) {
               this.onUrlChange(this.defaultDomain);

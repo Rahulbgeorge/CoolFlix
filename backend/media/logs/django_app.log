@@ -2881,3 +2881,332 @@ INFO 2026-05-31 04:17:31,794 log 61610 6137671680 "GET /api/network-info HTTP/1.
 INFO 2026-05-31 04:17:32,045 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
 INFO 2026-05-31 04:17:41,774 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
 INFO 2026-05-31 04:17:42,028 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:17:51,872 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:17:52,182 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:18:01,782 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:18:02,023 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:18:11,797 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:18:12,036 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:18:21,968 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:18:22,213 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:18:31,959 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:18:32,212 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:18:41,962 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:18:42,202 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:18:51,957 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:18:52,291 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:19:01,975 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:19:02,215 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:19:11,971 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:19:12,235 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:19:25,979 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:19:26,655 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:20:25,974 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:20:26,225 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:21:25,983 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:21:26,244 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:22:25,980 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:22:26,243 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:23:25,958 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:23:26,206 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+WARNING 2026-05-31 04:24:07,401 log 62188 8417931520 Bad Request: /api/videos/1/clips
+WARNING 2026-05-31 04:24:07,401 log 62188 8417931520 Bad Request: /api/videos/1/clips
+WARNING 2026-05-31 04:24:07,402 log 62188 8417931520 Bad Request: /api/videos/1/clips
+INFO 2026-05-31 04:24:07,661 cron 62188 8417931520 Acquired file lock. Starting prioritized transcoder cycle...
+INFO 2026-05-31 04:24:07,664 cron 62188 8417931520 Running Preview clip & thumbnail generation for video ID 1...
+INFO 2026-05-31 04:24:07,666 cron 62188 8417931520 Running Sprite sheet generation for video ID 1...
+INFO 2026-05-31 04:24:07,668 cron 62188 8417931520 Running Physical Preview generation for video ID 1...
+INFO 2026-05-31 04:24:07,670 cron 62188 8417931520 Finished prioritized transcoder cycle.
+INFO 2026-05-31 04:24:07,672 cron 62188 8417931520 Acquired file lock. Starting prioritized transcoder cycle...
+INFO 2026-05-31 04:24:07,674 cron 62188 8417931520 Running Preview clip & thumbnail generation for video ID 1...
+INFO 2026-05-31 04:24:07,675 cron 62188 8417931520 Running Preview clip & thumbnail generation for video ID 2...
+INFO 2026-05-31 04:24:07,676 cron 62188 8417931520 Running Sprite sheet generation for video ID 1...
+INFO 2026-05-31 04:24:07,677 cron 62188 8417931520 Running Sprite sheet generation for video ID 2...
+INFO 2026-05-31 04:24:07,679 cron 62188 8417931520 Running Physical Preview generation for video ID 1...
+INFO 2026-05-31 04:24:07,680 cron 62188 8417931520 Running Physical Preview generation for video ID 2...
+INFO 2026-05-31 04:24:07,681 cron 62188 8417931520 Running HLS generation for video ID 1...
+INFO 2026-05-31 04:24:07,683 cron 62188 8417931520 Running HLS generation for video ID 2...
+INFO 2026-05-31 04:24:07,683 cron 62188 8417931520 Finished prioritized transcoder cycle.
+INFO 2026-05-31 04:24:07,702 transcoder 62188 8417931520 Codecs are compatible (H264/AAC). Initiating stream copying...
+INFO 2026-05-31 04:24:07,702 transcoder 62188 8417931520 Executing FFmpeg command: ffmpeg -y -i video.mp4 -progress - -map 0:v:0 -c:v copy -map 0:a:0 -c:a:0 copy -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+INFO 2026-05-31 04:24:07,703 transcoder 62188 8417931520 Attempting GPU/CUDA accelerated HLS transcoding...
+INFO 2026-05-31 04:24:07,703 transcoder 62188 8417931520 Executing FFmpeg command: ffmpeg -y -hwaccel cuda -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v h264_nvenc -preset fast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a:0 aac -b:a:0 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+INFO 2026-05-31 04:24:07,704 transcoder 62188 8417931520 Attempting GPU/CUDA accelerated HLS transcoding...
+INFO 2026-05-31 04:24:07,704 transcoder 62188 8417931520 Executing FFmpeg command: ffmpeg -y -hwaccel cuda -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v h264_nvenc -preset fast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a:0 aac -b:a:0 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+WARNING 2026-05-31 04:24:07,704 transcoder 62188 8417931520 GPU transcoding failed: FFmpeg failed with exit code 1. Log: error
+. Falling back to CPU...
+INFO 2026-05-31 04:24:07,705 transcoder 62188 8417931520 Executing FFmpeg command: ffmpeg -y -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v libx264 -preset veryfast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a:0 aac -b:a:0 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+INFO 2026-05-31 04:24:25,973 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:24:26,217 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:25:25,969 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:25:26,220 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:26:25,967 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:26:26,201 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:27:25,983 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:27:26,245 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:28:25,979 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:28:26,243 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:29:25,956 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:29:26,213 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:30:25,982 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:30:26,220 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:31:25,975 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:31:26,218 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:32:25,982 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:32:26,274 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:33:25,979 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:33:26,221 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:34:25,981 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:34:26,249 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:35:25,992 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:35:26,245 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:36:25,982 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:36:26,222 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:37:25,999 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:37:26,248 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:38:25,999 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:38:26,240 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:39:25,987 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:39:26,227 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:40:25,980 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:40:26,246 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:41:25,984 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:41:26,231 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:42:25,991 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:42:26,223 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:43:25,988 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:43:26,229 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:44:25,979 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:44:26,220 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:45:25,975 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:45:26,252 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:46:26,389 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:46:26,642 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:47:25,983 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:47:26,226 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:48:25,980 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:48:26,228 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:49:25,967 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:49:26,209 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:50:25,977 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:50:26,219 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:50:44,289 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:50:44,530 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:50:45,648 log 61610 6154498048 "GET /api/videos HTTP/1.0" 200 4428
+INFO 2026-05-31 04:50:45,656 log 61610 6154498048 "GET /api/videos/4/mp4_stream HTTP/1.0" 200 0
+INFO 2026-05-31 04:50:45,678 log 61610 6154498048 "GET /api/videos/4/mp4_stream HTTP/1.0" 200 0
+INFO 2026-05-31 04:50:45,717 log 61610 6154498048 "GET /api/videos/4/mp4_stream HTTP/1.0" 200 0
+INFO 2026-05-31 04:50:45,885 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 121
+INFO 2026-05-31 04:50:46,126 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:50:46,135 log 61610 6137671680 "GET /api/videos HTTP/1.0" 200 4488
+INFO 2026-05-31 04:50:46,152 log 61610 6137671680 "GET /api/videos/4/mp4_stream HTTP/1.0" 200 0
+INFO 2026-05-31 04:50:46,166 log 61610 6137671680 "GET /api/videos/4/mp4_stream HTTP/1.0" 200 0
+INFO 2026-05-31 04:50:46,192 log 61610 6137671680 "GET /api/videos/4/mp4_stream HTTP/1.0" 200 0
+INFO 2026-05-31 04:50:46,194 log 61610 6154498048 "GET /api/videos/4/mp4_stream HTTP/1.0" 200 0
+INFO 2026-05-31 04:50:55,988 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:50:56,232 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:51:05,974 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:51:06,218 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:51:15,985 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:51:16,233 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:51:25,981 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:51:26,222 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:51:36,030 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:51:36,277 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:51:45,978 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:51:46,625 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:51:56,034 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:51:56,296 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:52:25,986 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:52:26,231 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:53:25,979 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:53:26,223 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:54:25,982 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:54:26,251 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:55:25,984 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:55:26,239 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:56:26,012 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:56:26,440 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:57:25,979 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:57:26,243 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:58:25,983 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:58:26,233 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:59:26,044 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 04:59:26,340 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:00:25,979 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:00:26,232 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:01:25,995 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:01:26,267 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:02:25,984 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:02:26,223 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:03:25,986 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:03:26,229 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:04:25,989 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:04:26,235 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:05:25,987 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:05:26,234 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:06:26,036 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:06:26,379 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:07:25,995 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:07:26,252 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:08:26,002 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:08:26,252 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:09:25,991 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:09:26,255 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:10:25,983 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:10:26,235 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:11:25,983 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:11:26,268 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:12:25,997 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:12:26,254 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:13:25,989 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:13:26,225 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:14:25,989 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:14:26,250 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:15:26,003 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:15:26,262 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:16:25,996 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:16:26,258 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:17:25,989 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:17:26,227 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:18:25,998 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:18:26,250 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:19:25,981 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:19:26,224 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:20:26,041 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:20:26,301 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:21:25,994 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:21:26,264 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:22:25,986 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:22:26,231 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:23:25,994 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:23:26,240 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:24:25,976 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:24:26,208 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:25:26,131 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:25:26,535 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:26:26,012 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:26:26,295 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:27:25,983 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:27:26,225 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:28:26,040 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:28:26,312 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:29:26,016 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:29:26,266 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:30:26,016 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:30:26,290 log 61610 6137671680 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:30:44,747 autoreload 61610 8417931520 /Users/rahulbg/netflix-clone/backend/api/views.py changed, reloading.
+INFO 2026-05-31 05:30:45,064 autoreload 65001 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-31 05:30:57,407 autoreload 65001 8417931520 /Users/rahulbg/netflix-clone/backend/api/urls.py changed, reloading.
+INFO 2026-05-31 05:30:57,706 autoreload 65018 8417931520 Watching for file changes with StatReloader
+INFO 2026-05-31 05:31:26,165 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:31:26,601 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+WARNING 2026-05-31 05:32:20,086 log 65123 8417931520 Bad Request: /api/videos/1/clips
+WARNING 2026-05-31 05:32:20,087 log 65123 8417931520 Bad Request: /api/videos/1/clips
+WARNING 2026-05-31 05:32:20,087 log 65123 8417931520 Bad Request: /api/videos/1/clips
+INFO 2026-05-31 05:32:20,345 cron 65123 8417931520 Acquired file lock. Starting prioritized transcoder cycle...
+INFO 2026-05-31 05:32:20,348 cron 65123 8417931520 Running Preview clip & thumbnail generation for video ID 1...
+INFO 2026-05-31 05:32:20,350 cron 65123 8417931520 Running Sprite sheet generation for video ID 1...
+INFO 2026-05-31 05:32:20,352 cron 65123 8417931520 Running Physical Preview generation for video ID 1...
+INFO 2026-05-31 05:32:20,354 cron 65123 8417931520 Finished prioritized transcoder cycle.
+INFO 2026-05-31 05:32:20,356 cron 65123 8417931520 Acquired file lock. Starting prioritized transcoder cycle...
+INFO 2026-05-31 05:32:20,357 cron 65123 8417931520 Running Preview clip & thumbnail generation for video ID 1...
+INFO 2026-05-31 05:32:20,359 cron 65123 8417931520 Running Preview clip & thumbnail generation for video ID 2...
+INFO 2026-05-31 05:32:20,360 cron 65123 8417931520 Running Sprite sheet generation for video ID 1...
+INFO 2026-05-31 05:32:20,361 cron 65123 8417931520 Running Sprite sheet generation for video ID 2...
+INFO 2026-05-31 05:32:20,363 cron 65123 8417931520 Running Physical Preview generation for video ID 1...
+INFO 2026-05-31 05:32:20,364 cron 65123 8417931520 Running Physical Preview generation for video ID 2...
+INFO 2026-05-31 05:32:20,365 cron 65123 8417931520 Running HLS generation for video ID 1...
+INFO 2026-05-31 05:32:20,366 cron 65123 8417931520 Running HLS generation for video ID 2...
+INFO 2026-05-31 05:32:20,367 cron 65123 8417931520 Finished prioritized transcoder cycle.
+INFO 2026-05-31 05:32:20,386 transcoder 65123 8417931520 Codecs are compatible (H264/AAC). Initiating stream copying...
+INFO 2026-05-31 05:32:20,386 transcoder 65123 8417931520 Executing FFmpeg command: ffmpeg -y -i video.mp4 -progress - -map 0:v:0 -c:v copy -map 0:a:0 -c:a:0 copy -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+INFO 2026-05-31 05:32:20,386 transcoder 65123 8417931520 Attempting GPU/CUDA accelerated HLS transcoding...
+INFO 2026-05-31 05:32:20,386 transcoder 65123 8417931520 Executing FFmpeg command: ffmpeg -y -hwaccel cuda -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v h264_nvenc -preset fast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a:0 aac -b:a:0 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+INFO 2026-05-31 05:32:20,387 transcoder 65123 8417931520 Attempting GPU/CUDA accelerated HLS transcoding...
+INFO 2026-05-31 05:32:20,387 transcoder 65123 8417931520 Executing FFmpeg command: ffmpeg -y -hwaccel cuda -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v h264_nvenc -preset fast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a:0 aac -b:a:0 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+WARNING 2026-05-31 05:32:20,387 transcoder 65123 8417931520 GPU transcoding failed: FFmpeg failed with exit code 1. Log: error
+. Falling back to CPU...
+INFO 2026-05-31 05:32:20,388 transcoder 65123 8417931520 Executing FFmpeg command: ffmpeg -y -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v libx264 -preset veryfast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a:0 aac -b:a:0 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+INFO 2026-05-31 05:32:26,048 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:32:26,450 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:33:25,998 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:33:26,255 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:34:26,016 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:34:26,308 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:35:26,009 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:35:26,289 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:46:42,841 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:46:43,143 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:57:45,903 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:57:46,410 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:58:45,692 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:58:46,072 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:59:45,667 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 05:59:46,034 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 06:20:46,895 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 06:20:47,251 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 06:31:50,704 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 06:31:51,105 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 06:42:56,512 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 06:42:56,887 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 06:53:59,622 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 06:53:59,954 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 07:11:15,413 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 07:11:15,662 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 07:26:54,465 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+INFO 2026-05-31 07:26:54,784 log 65018 6156283904 "GET /api/network-info HTTP/1.0" 200 126
+WARNING 2026-05-31 07:42:10,021 log 67916 8417931520 Bad Request: /api/videos/1/clips
+WARNING 2026-05-31 07:42:10,021 log 67916 8417931520 Bad Request: /api/videos/1/clips
+WARNING 2026-05-31 07:42:10,022 log 67916 8417931520 Bad Request: /api/videos/1/clips
+INFO 2026-05-31 07:42:10,277 cron 67916 8417931520 Acquired file lock. Starting prioritized transcoder cycle...
+INFO 2026-05-31 07:42:10,281 cron 67916 8417931520 Running Preview clip & thumbnail generation for video ID 1...
+INFO 2026-05-31 07:42:10,283 cron 67916 8417931520 Running Sprite sheet generation for video ID 1...
+INFO 2026-05-31 07:42:10,285 cron 67916 8417931520 Running Physical Preview generation for video ID 1...
+INFO 2026-05-31 07:42:10,287 cron 67916 8417931520 Finished prioritized transcoder cycle.
+INFO 2026-05-31 07:42:10,289 cron 67916 8417931520 Acquired file lock. Starting prioritized transcoder cycle...
+INFO 2026-05-31 07:42:10,291 cron 67916 8417931520 Running Preview clip & thumbnail generation for video ID 1...
+INFO 2026-05-31 07:42:10,292 cron 67916 8417931520 Running Preview clip & thumbnail generation for video ID 2...
+INFO 2026-05-31 07:42:10,294 cron 67916 8417931520 Running Sprite sheet generation for video ID 1...
+INFO 2026-05-31 07:42:10,295 cron 67916 8417931520 Running Sprite sheet generation for video ID 2...
+INFO 2026-05-31 07:42:10,296 cron 67916 8417931520 Running Physical Preview generation for video ID 1...
+INFO 2026-05-31 07:42:10,298 cron 67916 8417931520 Running Physical Preview generation for video ID 2...
+INFO 2026-05-31 07:42:10,299 cron 67916 8417931520 Running HLS generation for video ID 1...
+INFO 2026-05-31 07:42:10,300 cron 67916 8417931520 Running HLS generation for video ID 2...
+INFO 2026-05-31 07:42:10,301 cron 67916 8417931520 Finished prioritized transcoder cycle.
+INFO 2026-05-31 07:42:10,320 transcoder 67916 8417931520 Codecs are compatible (H264/AAC). Initiating stream copying...
+INFO 2026-05-31 07:42:10,320 transcoder 67916 8417931520 Executing FFmpeg command: ffmpeg -y -i video.mp4 -progress - -map 0:v:0 -c:v copy -map 0:a:0 -c:a:0 copy -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+INFO 2026-05-31 07:42:10,321 transcoder 67916 8417931520 Attempting GPU/CUDA accelerated HLS transcoding...
+INFO 2026-05-31 07:42:10,321 transcoder 67916 8417931520 Executing FFmpeg command: ffmpeg -y -hwaccel cuda -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v h264_nvenc -preset fast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a:0 aac -b:a:0 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+INFO 2026-05-31 07:42:10,322 transcoder 67916 8417931520 Attempting GPU/CUDA accelerated HLS transcoding...
+INFO 2026-05-31 07:42:10,322 transcoder 67916 8417931520 Executing FFmpeg command: ffmpeg -y -hwaccel cuda -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v h264_nvenc -preset fast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a:0 aac -b:a:0 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+WARNING 2026-05-31 07:42:10,322 transcoder 67916 8417931520 GPU transcoding failed: FFmpeg failed with exit code 1. Log: error
+. Falling back to CPU...
+INFO 2026-05-31 07:42:10,322 transcoder 67916 8417931520 Executing FFmpeg command: ffmpeg -y -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v libx264 -preset veryfast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a:0 aac -b:a:0 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+WARNING 2026-05-31 07:44:49,830 log 67973 8417931520 Bad Request: /api/videos/1/clips
+WARNING 2026-05-31 07:44:49,831 log 67973 8417931520 Bad Request: /api/videos/1/clips
+WARNING 2026-05-31 07:44:49,831 log 67973 8417931520 Bad Request: /api/videos/1/clips
+INFO 2026-05-31 07:44:50,081 cron 67973 8417931520 Acquired file lock. Starting prioritized transcoder cycle...
+INFO 2026-05-31 07:44:50,084 cron 67973 8417931520 Running Preview clip & thumbnail generation for video ID 1...
+INFO 2026-05-31 07:44:50,087 cron 67973 8417931520 Running Sprite sheet generation for video ID 1...
+INFO 2026-05-31 07:44:50,089 cron 67973 8417931520 Running Physical Preview generation for video ID 1...
+INFO 2026-05-31 07:44:50,092 cron 67973 8417931520 Finished prioritized transcoder cycle.
+INFO 2026-05-31 07:44:50,095 cron 67973 8417931520 Acquired file lock. Starting prioritized transcoder cycle...
+INFO 2026-05-31 07:44:50,096 cron 67973 8417931520 Running Preview clip & thumbnail generation for video ID 1...
+INFO 2026-05-31 07:44:50,098 cron 67973 8417931520 Running Preview clip & thumbnail generation for video ID 2...
+INFO 2026-05-31 07:44:50,100 cron 67973 8417931520 Running Sprite sheet generation for video ID 1...
+INFO 2026-05-31 07:44:50,101 cron 67973 8417931520 Running Sprite sheet generation for video ID 2...
+INFO 2026-05-31 07:44:50,103 cron 67973 8417931520 Running Physical Preview generation for video ID 1...
+INFO 2026-05-31 07:44:50,104 cron 67973 8417931520 Running Physical Preview generation for video ID 2...
+INFO 2026-05-31 07:44:50,106 cron 67973 8417931520 Running HLS generation for video ID 1...
+INFO 2026-05-31 07:44:50,108 cron 67973 8417931520 Running HLS generation for video ID 2...
+INFO 2026-05-31 07:44:50,109 cron 67973 8417931520 Finished prioritized transcoder cycle.
+INFO 2026-05-31 07:44:50,129 transcoder 67973 8417931520 Codecs are compatible (H264/AAC). Initiating stream copying...
+INFO 2026-05-31 07:44:50,129 transcoder 67973 8417931520 Executing FFmpeg command: ffmpeg -y -i video.mp4 -progress - -map 0:v:0 -c:v copy -map 0:a:0 -c:a:0 copy -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+INFO 2026-05-31 07:44:50,130 transcoder 67973 8417931520 Attempting GPU/CUDA accelerated HLS transcoding...
+INFO 2026-05-31 07:44:50,130 transcoder 67973 8417931520 Executing FFmpeg command: ffmpeg -y -hwaccel cuda -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v h264_nvenc -preset fast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a:0 aac -b:a:0 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+INFO 2026-05-31 07:44:50,131 transcoder 67973 8417931520 Attempting GPU/CUDA accelerated HLS transcoding...
+INFO 2026-05-31 07:44:50,131 transcoder 67973 8417931520 Executing FFmpeg command: ffmpeg -y -hwaccel cuda -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v h264_nvenc -preset fast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a:0 aac -b:a:0 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8
+WARNING 2026-05-31 07:44:50,131 transcoder 67973 8417931520 GPU transcoding failed: FFmpeg failed with exit code 1. Log: error
+. Falling back to CPU...
+INFO 2026-05-31 07:44:50,131 transcoder 67973 8417931520 Executing FFmpeg command: ffmpeg -y -i video.mp4 -progress - -vf scale=-2:720 -map 0:v:0 -c:v libx264 -preset veryfast -b:v 2500k -maxrate:v 2750k -bufsize:v 3750k -map 0:a:0 -c:a:0 aac -b:a:0 128k -f hls -hls_time 6 -hls_playlist_type event -master_pl_name master.m3u8 -var_stream_map v:0,agroup:audios a:0,agroup:audios,language:und,name:Audio_Track_1 -hls_segment_filename /tmp/streams/stream_%v/data%03d.ts /tmp/streams/stream_%v/playlist.m3u8

@@ -215,6 +215,19 @@ def scan_api(request):
                 is_series=clean_res.is_series
             )
             
+            # Create symlink to original video inside the streamable folder
+            # so Nginx can serve it directly with range request support
+            video_output_dir = os.path.join(output_loc, slug)
+            os.makedirs(video_output_dir, exist_ok=True)
+            symlink_path = os.path.join(video_output_dir, 'original.mp4')
+            try:
+                if os.path.islink(symlink_path):
+                    os.unlink(symlink_path)  # Remove stale symlink
+                if not os.path.exists(symlink_path):
+                    os.symlink(os.path.abspath(final_path), symlink_path)
+            except Exception as sym_err:
+                logger.warning(f"Could not create symlink for {slug}: {sym_err}")
+            
             new_videos_count += 1
             
         except Exception as item_err:
@@ -234,7 +247,8 @@ def videos_list_api(request):
         # Check if assets are available based on stage completion
         thumbnail_url = f"{host}/media/streamable/{v.slug}/thumbnail.jpg" if v.preview_clip_status == 'completed' else None
         master_playlist_url = f"{host}/media/streamable/{v.slug}/streams/master.m3u8" if v.hls_status == 'completed' else None
-        mp4_stream_url = f"{host}/api/videos/{v.id}/mp4_stream"
+        # Direct Nginx-served URL for original video (symlinked during scan)
+        original_file_url = f"{host}/media/streamable/{v.slug}/original.mp4"
         
         # Check if physical preview is completed, else look for database preview clip
         preview_url = None
@@ -243,7 +257,7 @@ def videos_list_api(request):
         else:
             preview_clip = v.clips.filter(category='Preview').first()
             if preview_clip:
-                preview_url = f"{mp4_stream_url}#t={preview_clip.start_time},{preview_clip.end_time}"
+                preview_url = f"{original_file_url}#t={preview_clip.start_time},{preview_clip.end_time}"
         
         result.append({
             'id': v.id,
@@ -257,7 +271,7 @@ def videos_list_api(request):
             'thumbnail_url': thumbnail_url,
             'preview_url': preview_url,
             'master_playlist_url': master_playlist_url,
-            'mp4_stream_url': mp4_stream_url,
+            'original_file_url': original_file_url,
             'error_message': v.error_message,
             'created_at': v.created_at.isoformat(),
             'updated_at': v.updated_at.isoformat(),
@@ -355,7 +369,8 @@ def video_detail_api(request, video_id):
     thumbnail_url = f"{host}/media/streamable/{v.slug}/thumbnail.jpg" if v.preview_clip_status == 'completed' else None
     master_playlist_url = f"{host}/media/streamable/{v.slug}/streams/master.m3u8" if v.hls_status == 'completed' else None
     sprite_url_template = f"{host}/media/streamable/{v.slug}/sprite_%03d.jpg" if v.sprite_status == 'completed' else None
-    mp4_stream_url = f"{host}/api/videos/{v.id}/mp4_stream"
+    # Direct Nginx-served URL for original video (symlinked during scan)
+    original_file_url = f"{host}/media/streamable/{v.slug}/original.mp4"
     
     # Check if physical preview is completed, else look for database preview clip
     preview_url = None
@@ -364,9 +379,11 @@ def video_detail_api(request, video_id):
     else:
         preview_clip = v.clips.filter(category='Preview').first()
         if preview_clip:
-            preview_url = f"{mp4_stream_url}#t={preview_clip.start_time},{preview_clip.end_time}"
+            preview_url = f"{original_file_url}#t={preview_clip.start_time},{preview_clip.end_time}"
     
     # Probe video dynamically for audio tracks list
+    # TODO Phase 2: Once per-track audio files are generated (e.g. video_eng.mp4, video_tamil.mp4),
+    # return their Nginx URLs here instead of just metadata. Frontend will switch src directly.
     audio_tracks = []
     if os.path.exists(v.original_path):
         try:
@@ -391,7 +408,7 @@ def video_detail_api(request, video_id):
         'sprite_url_template': sprite_url_template,
         'sprite_info': sprite_info,
         'streams': streams,
-        'mp4_stream_url': mp4_stream_url,
+        'original_file_url': original_file_url,
         'audio_tracks': audio_tracks,
         'error_message': v.error_message,
         'created_at': v.created_at.isoformat(),
@@ -485,6 +502,15 @@ def serve_streamable_file(request, relative_path):
         else:
             content_type = 'application/octet-stream'
             
+    # Check if Nginx proxied the request to support high-performance X-Accel-Redirect range queries
+    is_nginx = 'HTTP_X_REAL_IP' in request.META or 'HTTP_X_FORWARDED_FOR' in request.META
+    if is_nginx:
+        response = HttpResponse()
+        response['X-Accel-Redirect'] = f'/original_videos{file_path}'
+        response['Content-Type'] = content_type
+        response["Access-Control-Allow-Origin"] = "*"
+        return response
+        
     response = FileResponse(open(file_path, 'rb'), content_type=content_type)
     response["Access-Control-Allow-Origin"] = "*"
     return response
@@ -640,71 +666,10 @@ def serve_frontend(request, path=''):
         content = f.read()
     return HttpResponse(content, content_type='text/html')
 
-def video_mp4_stream_api(request, video_id):
-    """Serves the original video file directly via Nginx's X-Accel-Redirect header or falls back to Django FileResponse."""
-    try:
-        v = Video.objects.get(id=video_id)
-    except Video.DoesNotExist:
-        return JsonResponse({'error': 'Video not found'}, status=404)
-        
-    if not os.path.exists(v.original_path):
-        return JsonResponse({'error': f'Original video file not found on disk: {v.original_path}'}, status=404)
-        
-    # Check if a specific audio track was requested
-    track_index = request.GET.get('track')
-    if track_index is not None:
-        try:
-            track_index = int(track_index)
-        except ValueError:
-            track_index = None
-
-    # If track_index is specified, use FFmpeg subprocess to remux the custom track on the fly
-    if track_index is not None and track_index >= 0:
-        import subprocess
-        from django.http import StreamingHttpResponse
-        
-        # Command to copy video and transcode selected audio to AAC for universal browser compatibility
-        cmd = [
-            'ffmpeg', '-y',
-            '-i', v.original_path,
-            '-map', '0:v:0',
-            '-map', f'0:a:{track_index}',
-            '-c:v', 'copy',
-            '-c:a', 'aac',
-            '-f', 'mp4',
-            '-movflags', 'frag_keyframe+empty_moov',
-            'pipe:1'
-        ]
-        
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-        
-        def stream_generator():
-            try:
-                while True:
-                    chunk = process.stdout.read(65536) # 64KB chunks
-                    if not chunk:
-                        break
-                    yield chunk
-            finally:
-                process.terminate()
-                
-        response = StreamingHttpResponse(stream_generator(), content_type='video/mp4')
-        return response
-
-    # Check if Nginx proxied the request (usually HTTP_X_REAL_IP or HTTP_X_FORWARDED_FOR is set by Nginx)
-    is_nginx = 'HTTP_X_REAL_IP' in request.META or 'HTTP_X_FORWARDED_FOR' in request.META
-    
-    if is_nginx:
-        # Request is fronted by Nginx: offload streaming to Nginx using X-Accel-Redirect
-        # We prepend /original_videos to map to the 'alias /;' location in Nginx
-        response = HttpResponse()
-        response['X-Accel-Redirect'] = f'/original_videos{v.original_path}'
-        response['Content-Type'] = 'video/mp4'
-        return response
-    else:
-        # Django fallback (for direct development runs on port 8001 without Nginx)
-        response = FileResponse(open(v.original_path, 'rb'), content_type='video/mp4')
-        return response
+# ──────────────────────────────────────────────────────────────────────────────
+# Video streaming is handled directly by Nginx via range queries (206 Partial Content)
+# dynamically initiated through Django returning X-Accel-Redirect headers.
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 @csrf_exempt
@@ -1051,6 +1016,8 @@ def network_info_api(request):
     # 4. Check if same network
     same_network = False
     if client_ip in ('127.0.0.1', 'localhost', '::1') or client_ip.startswith('192.168.') or client_ip.startswith('10.') or client_ip.startswith('172.16.') or client_ip.startswith('172.31.'):
+        same_network = True
+    elif client_ip.lower().startswith('fe80:') or client_ip.lower().startswith('fc00:') or client_ip.lower().startswith('fd00:'):
         same_network = True
     elif server_public_ip and client_ip == server_public_ip:
         same_network = True

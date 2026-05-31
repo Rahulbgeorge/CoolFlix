@@ -241,21 +241,14 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
     const useDirectMp4 = videoData.hls_status !== 'completed';
 
     if (useDirectMp4) {
-      // Fallback: Direct MP4 streaming via Nginx / Django
-      videoElement.src = videoData.mp4_stream_url;
+      // Direct MP4 streaming via Nginx (original.mp4 symlink served with range request support)
+      videoElement.src = videoData.original_file_url;
       videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
       videoElement.play().catch(() => {});
       
-      // Fallback to populate audioTracks list if native browser API is missing
-      if (!videoElement.audioTracks && videoData.audio_tracks && videoData.audio_tracks.length > 1) {
-        const tracks = videoData.audio_tracks.map(track => ({
-          index: track.index,
-          label: track.title || track.language || `Track ${track.index + 1}`,
-          lang: track.language
-        }));
-        setAudioTracks(tracks);
-        setCurrentAudioTrackIdx(0);
-      }
+      // TODO Phase 2: When per-track audio files are available (video_eng.mp4, video_tamil.mp4),
+      // populate audioTracks with their Nginx URLs and re-enable the language selector.
+      // Frontend will switch audio by changing videoElement.src to the selected track's URL.
       
       // Hide qualities selection (single file stream)
       setQualities([]);
@@ -462,28 +455,13 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
         videoRef.current.audioTracks[i].enabled = (i === index);
       }
       setCurrentAudioTrackIdx(index);
-    } else if (videoRef.current) {
-      // Chrome/Firefox fallback: Reload the video with dynamic remuxing query param
-      const videoElement = videoRef.current;
-      const savedTime = videoElement.currentTime;
-      const wasPlaying = !videoElement.paused;
-      
-      // Update src with track parameter
-      videoElement.src = `${videoData.mp4_stream_url}?track=${index}`;
-      
-      // Reload and restore playing state & currentTime
-      const handleMetadata = () => {
-        videoElement.currentTime = savedTime;
-        if (wasPlaying) {
-          videoElement.play().catch(() => {});
-        }
-        videoElement.removeEventListener('loadedmetadata', handleMetadata);
-      };
-      
-      videoElement.addEventListener('loadedmetadata', handleMetadata);
-      videoElement.load();
-      setCurrentAudioTrackIdx(index);
     }
+    // TODO Phase 2: When per-track audio files exist, switch src to the selected track's Nginx URL:
+    // else if (videoData.audio_track_files && videoData.audio_track_files[index]) {
+    //   videoElement.src = videoData.audio_track_files[index].url;
+    //   videoElement.currentTime = savedTime;
+    //   videoElement.play();
+    // }
   };
 
   function skipTime(amount) {
@@ -858,8 +836,9 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
                 )}
               </div>
 
-              {/* Language Selector */}
-              {audioTracks.length > 1 && (
+              {/* Language Selector — only shown with HLS (multi-track) streaming */}
+              {/* TODO Phase 2: Re-enable for per-track audio files (video_eng.mp4 etc.) */}
+              {audioTracks.length > 1 && hlsRef.current && (
                 <div className="popover-menu-wrapper">
                   <button
                     className="player-btn"
