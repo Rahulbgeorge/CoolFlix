@@ -913,4 +913,156 @@ def video_thumbnail_api(request, video_id):
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
+@csrf_exempt
+def upload_video_api(request):
+    """POST to upload a video directly into the server's source_loc and trigger a scan/enqueue."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+    source_loc = get_setting('source_loc')
+    if not source_loc or not os.path.exists(source_loc):
+        return JsonResponse({'error': 'Valid source location is not configured on the server.'}, status=400)
+        
+    if 'file' not in request.FILES:
+        return JsonResponse({'error': 'No video file provided'}, status=400)
+        
+    file_obj = request.FILES['file']
+    filename = file_obj.name
+    
+    # Check valid video extension
+    video_extensions = ('.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.m4v')
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in video_extensions:
+        return JsonResponse({'error': f'Unsupported file format. Only video files are allowed: {", ".join(video_extensions)}'}, status=400)
+        
+    # Generate unique filename in source_loc if file already exists
+    base_name = os.path.splitext(filename)[0]
+    target_path = os.path.join(source_loc, filename)
+    counter = 1
+    while os.path.exists(target_path):
+        target_path = os.path.join(source_loc, f"{base_name}_{counter}{ext}")
+        counter += 1
+        
+    # Save the uploaded file chunk by chunk to prevent memory bloat
+    try:
+        with open(target_path, 'wb+') as dest:
+            for chunk in file_obj.chunks():
+                dest.write(chunk)
+    except Exception as e:
+        logger.exception("Failed to write uploaded video file")
+        return JsonResponse({'error': f"Failed to save video: {str(e)}"}, status=500)
+        
+    # Now, trigger a quick scan/parse for this specific file to register it
+    try:
+        clean_res = FileNameCleaner.clean(target_path, source_loc)
+        
+        # Rename the file and directory physically on disk if requested by parser
+        final_path = target_path
+        if clean_res.new_filepath != target_path:
+            dest_dir = os.path.dirname(clean_res.new_filepath)
+            os.makedirs(dest_dir, exist_ok=True)
+            try:
+                os.rename(target_path, clean_res.new_filepath)
+                final_path = clean_res.new_filepath
+            except Exception as rename_err:
+                logger.error(f"Failed to rename file {target_path} to {clean_res.new_filepath}: {rename_err}")
+                final_path = target_path
+                
+        # Generate slug
+        base_slug = slugify(clean_res.cleaned_name)
+        if not base_slug:
+            base_slug = "video"
+        slug = base_slug
+        counter = 1
+        while Video.objects.filter(slug=slug).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+            
+        # Create DB record with full metadata
+        video = Video.objects.create(
+            title=clean_res.cleaned_name,
+            original_path=final_path,
+            slug=slug,
+            status='pending',
+            hls_status='not_required',
+            sprite_status='pending',
+            preview_clip_status='pending',
+            preview_status='not_required',
+            transcode_target=get_setting('default_transcode_target', 'original'),
+            progress=0.0,
+            cleaned_title=clean_res.cleaned_name,
+            release_year=clean_res.year,
+            languages=clean_res.languages,
+            resolution=clean_res.resolution,
+            quality=clean_res.quality,
+            codec=clean_res.codec,
+            season=clean_res.season,
+            episode=clean_res.episode,
+            size=clean_res.size,
+            subtitles=clean_res.subtitles,
+            is_series=clean_res.is_series
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f"Video uploaded and queued successfully: {video.title}",
+            'video_id': video.id
+        })
+    except Exception as scan_err:
+        logger.exception("Error scanning uploaded video")
+        return JsonResponse({
+            'success': True,
+            'message': "Video uploaded successfully. Run a directory scan to register it.",
+            'error_details': str(scan_err)
+        })
+
+
+@csrf_exempt
+def network_info_api(request):
+    """Returns network IP details to let the client detect if they are on the same local network."""
+    import socket
+    import urllib.request
+    
+    # 1. Get client IP
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        client_ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        client_ip = request.META.get('REMOTE_ADDR', '127.0.0.1')
+        
+    # 2. Get server local IP
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('8.8.8.8', 80))
+        server_local_ip = s.getsockname()[0]
+    except Exception:
+        server_local_ip = '127.0.0.1'
+    finally:
+        s.close()
+        
+    # 3. Get server public IP
+    server_public_ip = None
+    try:
+        with urllib.request.urlopen('https://api.ipify.org', timeout=1.5) as response:
+            server_public_ip = response.read().decode('utf-8').strip()
+    except Exception:
+        pass
+        
+    # 4. Check if same network
+    same_network = False
+    if client_ip in ('127.0.0.1', 'localhost', '::1') or client_ip.startswith('192.168.') or client_ip.startswith('10.') or client_ip.startswith('172.16.') or client_ip.startswith('172.31.'):
+        same_network = True
+    elif server_public_ip and client_ip == server_public_ip:
+        same_network = True
+        
+    return JsonResponse({
+        'client_ip': client_ip,
+        'server_local_ip': server_local_ip,
+        'server_public_ip': server_public_ip,
+        'same_network': same_network
+    })
+
+
+
+
 

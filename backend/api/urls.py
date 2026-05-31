@@ -15,4 +15,6 @@ urlpatterns = [
     path('videos/<int:video_id>/clips', views.video_clips_api, name='video_clips_api'),
     path('videos/clips/<int:clip_id>', views.delete_clip_api, name='delete_clip_api'),
     path('videos/<int:video_id>/thumbnail', views.video_thumbnail_api, name='video_thumbnail_api'),
+    path('videos/upload', views.upload_video_api, name='upload_video_api'),
+    path('network-info', views.network_info_api, name='network_info_api'),
 ]

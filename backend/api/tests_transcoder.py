@@ -1,3 +1,4 @@
+import os
 import json
 from unittest.mock import patch, MagicMock
 from django.test import SimpleTestCase
@@ -146,7 +147,7 @@ class FFmpegTranscoderTests(SimpleTestCase):
 
 from django.test import TestCase
 from django.core.management import call_command
-from api.models import Video
+from api.models import Video, Setting
 
 class RunTranscoderCommandTests(TestCase):
     @patch('fcntl.flock')
@@ -335,5 +336,70 @@ class VideoThumbnailAPITests(TestCase):
         self.video.refresh_from_db()
         self.assertFalse(self.video.has_custom_thumbnail)
         mock_generate.assert_called_once()
+
+
+class VideoUploadAPITests(TestCase):
+    def setUp(self):
+        # Configure source location setting in test db
+        Setting.objects.update_or_create(key='source_loc', defaults={'value': '/tmp/test_source_loc'})
+        os.makedirs('/tmp/test_source_loc', exist_ok=True)
+
+    def tearDown(self):
+        # Clean up test directories
+        import shutil
+        if os.path.exists('/tmp/test_source_loc'):
+            try:
+                shutil.rmtree('/tmp/test_source_loc')
+            except Exception:
+                pass
+
+    @patch('api.views.FileNameCleaner.clean')
+    @patch('api.views.os.rename')
+    def test_upload_video_success(self, mock_rename, mock_clean):
+        # Mock filename cleaner response
+        mock_clean_res = MagicMock()
+        mock_clean_res.cleaned_name = "Cleaned Test Video"
+        mock_clean_res.new_filepath = "/tmp/test_source_loc/Cleaned_Test_Video.mp4"
+        mock_clean_res.year = 2024
+        mock_clean_res.languages = ["en"]
+        mock_clean_res.resolution = "1080p"
+        mock_clean_res.quality = "WEBDL"
+        mock_clean_res.codec = "h264"
+        mock_clean_res.season = None
+        mock_clean_res.episode = None
+        mock_clean_res.size = "1.2GB"
+        mock_clean_res.subtitles = False
+        mock_clean_res.is_series = False
+        mock_clean.return_value = mock_clean_res
+
+        # Create a mock video file
+        video_file = SimpleUploadedFile(
+            "uploaded_movie.mp4", 
+            b"fake_video_stream_content", 
+            content_type="video/mp4"
+        )
+
+        url = reverse('upload_video_api')
+        response = self.client.post(url, {'file': video_file})
+
+        self.assertEqual(response.status_code, 200)
+        resp_data = response.json()
+        self.assertTrue(resp_data['success'])
+        
+        # Check that Video record was created
+        self.assertTrue(Video.objects.filter(title="Cleaned Test Video").exists())
+
+
+class NetworkInfoAPITests(TestCase):
+    def test_network_info(self):
+        url = reverse('network_info_api')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('client_ip', data)
+        self.assertIn('server_local_ip', data)
+        self.assertIn('same_network', data)
+
+
 
 

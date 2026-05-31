@@ -10,6 +10,63 @@ export default function SettingsModal({ isOpen, onClose, apiBaseUrl, onScanCompl
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [message, setMessage] = useState(null);
+  
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadMessage, setUploadMessage] = useState(null);
+
+  const handleUploadVideo = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const videoExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.m4v'];
+    const fileExt = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+    if (!videoExtensions.includes(fileExt)) {
+      setUploadMessage({ type: 'error', text: 'Invalid file format. Please upload a valid video file.' });
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+    setUploadMessage(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${apiBaseUrl}/api/videos/upload`, true);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(percentComplete);
+      }
+    };
+
+    xhr.onload = () => {
+      setUploading(false);
+      try {
+        const responseData = JSON.parse(xhr.responseText);
+        if (xhr.status === 200 && responseData.success) {
+          setUploadMessage({ type: 'success', text: responseData.message || 'Video uploaded and queued successfully!' });
+          if (onScanComplete) {
+            onScanComplete();
+          }
+        } else {
+          setUploadMessage({ type: 'error', text: responseData.error || 'Failed to upload video.' });
+        }
+      } catch (err) {
+        setUploadMessage({ type: 'error', text: 'Error parsing server response.' });
+      }
+    };
+
+    xhr.onerror = () => {
+      setUploading(false);
+      setUploadMessage({ type: 'error', text: 'Network error occurred during upload.' });
+    };
+
+    xhr.send(formData);
+  };
 
   const fetchConfig = useCallback(async () => {
     setLoading(true);
@@ -130,7 +187,8 @@ export default function SettingsModal({ isOpen, onClose, apiBaseUrl, onScanCompl
             Loading configuration...
           </div>
         ) : (
-          <form onSubmit={handleSave}>
+          <>
+            <form onSubmit={handleSave}>
             <div className="form-group">
               <label className="form-label" htmlFor="source-loc">
                 Original Videos Source Path
@@ -241,7 +299,80 @@ export default function SettingsModal({ isOpen, onClose, apiBaseUrl, onScanCompl
               </button>
             </div>
           </form>
-        )}
+          
+          <hr style={{ border: '0', borderTop: '1px solid #333', margin: '20px 0' }} />
+
+          <div className="upload-section">
+            <label className="form-label" style={{ marginBottom: '8px', display: 'block', fontSize: '13px', fontWeight: '700', color: '#fff' }}>
+              Upload Video directly to Server (Source Path)
+            </label>
+            
+            {uploadMessage && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px 14px',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                  marginBottom: '12px',
+                  backgroundColor: uploadMessage.type === 'error' ? 'rgba(225, 9, 20, 0.12)' : 'rgba(74, 222, 128, 0.12)',
+                  border: `1px solid ${uploadMessage.type === 'error' ? 'rgba(225, 9, 20, 0.2)' : 'rgba(74, 222, 128, 0.2)'}`,
+                  color: uploadMessage.type === 'error' ? '#ff4a53' : '#4ade80',
+                }}
+              >
+                {uploadMessage.type === 'error' ? <AlertCircle size={16} /> : <CheckCircle size={16} />}
+                <span>{uploadMessage.text}</span>
+              </div>
+            )}
+
+            {uploading ? (
+              <div style={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '4px', padding: '16px', textAlign: 'center' }}>
+                <div style={{ fontSize: '13px', color: '#fff', marginBottom: '8px', fontWeight: '500' }}>
+                  Uploading Video... {uploadProgress}%
+                </div>
+                <div style={{ width: '100%', height: '6px', backgroundColor: '#333', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: `${uploadProgress}%`, height: '100%', backgroundColor: '#0071eb', transition: 'width 0.1s ease' }} />
+                </div>
+              </div>
+            ) : (
+              <label 
+                className="btn btn-secondary" 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  padding: '24px', 
+                  border: '2px dashed #444', 
+                  backgroundColor: '#161616', 
+                  borderRadius: '6px', 
+                  cursor: 'pointer',
+                  boxSizing: 'border-box',
+                  width: '100%',
+                  color: '#fff'
+                }}
+              >
+                <FolderOpen size={24} style={{ color: 'var(--text-muted)', marginBottom: '8px' }} />
+                <span style={{ fontSize: '13px', fontWeight: '600', color: '#fff', marginBottom: '4px' }}>
+                  Select Video File
+                </span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  Support MP4, MKV, AVI, MOV, WEBM
+                </span>
+                <input 
+                  type="file" 
+                  accept=".mp4,.mkv,.avi,.mov,.webm,.flv,.m4v" 
+                  style={{ display: 'none' }} 
+                  onChange={handleUploadVideo} 
+                  disabled={!sourceLoc}
+                />
+              </label>
+            )}
+          </div>
+        </>
+      )}
       </div>
     </div>
   );

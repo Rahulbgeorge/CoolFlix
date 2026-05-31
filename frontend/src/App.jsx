@@ -5,16 +5,33 @@ import QueueStatus from './components/QueueStatus';
 import SettingsModal from './components/SettingsModal';
 import VideoPlayer from './components/VideoPlayer';
 import Downloader from './components/Downloader';
-
-const API_BASE_URL = window.location.port === '5173'
-  ? `${window.location.protocol}//${window.location.hostname}:8000`
-  : window.location.origin;
+import { ConnectionManager } from './utils/connectionManager';
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const [previousPath, setPreviousPath] = useState('/');
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [apiBaseUrl, setApiBaseUrl] = useState(
+    window.location.port === '5173'
+      ? `${window.location.protocol}//${window.location.hostname}:8000`
+      : window.location.origin
+  );
+
+  // Setup ConnectionManager for local network detection and auto-failover
+  useEffect(() => {
+    const defaultDomain = window.location.port === '5173'
+      ? `${window.location.protocol}//${window.location.hostname}:8000`
+      : window.location.origin;
+
+    const manager = new ConnectionManager(defaultDomain, (newUrl) => {
+      setApiBaseUrl(newUrl);
+    });
+
+    manager.start();
+    return () => manager.stop();
+  }, []);
 
   // Sync state with browser popstate events
   useEffect(() => {
@@ -55,7 +72,7 @@ export default function App() {
   // Fetch videos from the backend API
   const fetchVideos = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/videos`);
+      const response = await fetch(`${apiBaseUrl}/api/videos`);
       if (response.ok) {
         const data = await response.json();
         setVideos(data.videos || []);
@@ -65,7 +82,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiBaseUrl]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -111,7 +128,7 @@ export default function App() {
       {activeVideoId !== null ? (
         <VideoPlayer
           videoId={activeVideoId}
-          apiBaseUrl={API_BASE_URL}
+          apiBaseUrl={apiBaseUrl}
           onClose={() => {
             navigate(previousPath === '/settings' ? '/' : previousPath);
             fetchVideos(); // Fetch videos again to get latest state
@@ -157,19 +174,19 @@ export default function App() {
           ) : activeTab === 'queue' ? (
             <QueueStatus
               videos={videos}
-              apiBaseUrl={API_BASE_URL}
+              apiBaseUrl={apiBaseUrl}
               onRetryComplete={fetchVideos}
             />
           ) : (
             <Downloader
-              apiBaseUrl={API_BASE_URL}
+              apiBaseUrl={apiBaseUrl}
             />
           )}
 
           <SettingsModal
             isOpen={isSettingsOpen}
             onClose={() => navigate(previousPath === '/settings' ? '/' : previousPath)}
-            apiBaseUrl={API_BASE_URL}
+            apiBaseUrl={apiBaseUrl}
             onScanComplete={handleScanComplete}
           />
         </div>
