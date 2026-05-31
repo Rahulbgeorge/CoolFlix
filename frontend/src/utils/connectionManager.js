@@ -47,23 +47,25 @@ export class ConnectionManager {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-      const response = await fetch(`${baseUrl}/api/network-info`, { 
-        signal: controller.signal 
+      const response = await fetch(`${baseUrl}/api/network-info`, {
+        signal: controller.signal
       });
       clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
         this.serverLocalIp = data.server_local_ip;
-        
+
         // Active probing: Test if the client can hit the server's local IP on port 8000 directly.
         // This is 100% reliable for same local network detection, regardless of client IPv4/IPv6 format.
         let isLocalReachable = false;
         let localUrl = null;
 
         if (this.serverLocalIp) {
-          localUrl = `http://${this.serverLocalIp}:8000`;
-          
+          // Figure out the local port dynamically, defaulting to 8000
+          const localPort = '8000';
+          localUrl = `http://${this.serverLocalIp}:${localPort}`;
+
           // Optimization: If the current active URL is already the local IP, and the fetch succeeded above,
           // it is obviously reachable. Bypassing redundant ping to avoid transient timeout reverts.
           if (baseUrl === localUrl) {
@@ -71,12 +73,12 @@ export class ConnectionManager {
           } else {
             // Check if we are in the 5-minute backoff period after a local IP probe failure
             const inBackoff = Date.now() - this.lastLocalFailureTime < 300000; // 5 minutes
-            
+
             if (inBackoff) {
               isLocalReachable = false;
             } else {
               isLocalReachable = await this.testUrl(localUrl);
-              
+
               if (!isLocalReachable) {
                 console.log("ConnectionManager: Local IP probe failed. Initiating 5-minute backoff.");
                 this.lastLocalFailureTime = Date.now();
@@ -90,8 +92,9 @@ export class ConnectionManager {
 
         if (sameNetworkDetected && localUrl && isLocalReachable) {
           if (this.currentBaseUrl !== localUrl) {
-            console.log(`ConnectionManager: Switching to LOCAL IP: ${localUrl}`);
+            console.log(`ConnectionManager: Switching to LOCAL IP PERMANENTLY: ${localUrl}`);
             this.currentBaseUrl = localUrl;
+            this.stop(); // Stop future checks once successfully reached!
             if (this.onUrlChange) {
               this.onUrlChange(localUrl);
             }
@@ -132,9 +135,9 @@ export class ConnectionManager {
       const cleanUrl = url.replace(/\/$/, "");
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 1500);
-      
-      const response = await fetch(`${cleanUrl}/api/network-info`, { 
-        signal: controller.signal 
+
+      const response = await fetch(`${cleanUrl}/api/network-info`, {
+        signal: controller.signal
       });
       clearTimeout(timeoutId);
       return response.ok;
