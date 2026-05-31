@@ -30,6 +30,7 @@ class Video(models.Model):
             ('480p', '480p SD')
         ]
     )
+    streamable_copy_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     hls_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     sprite_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     preview_clip_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -53,7 +54,7 @@ class Video(models.Model):
     size = models.CharField(max_length=50, default="", blank=True, null=True)
     subtitles = models.BooleanField(default=False)
     is_series = models.BooleanField(default=False)
-    hls_required = models.BooleanField(default=False)
+    hls_required = models.BooleanField(default=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

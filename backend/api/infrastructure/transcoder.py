@@ -142,11 +142,12 @@ class FFmpegTranscoder:
         # Output template
         sprite_template = os.path.join(target_dir, 'sprite_%03d.jpg')
         
-        # FFmpeg tile command: scale each frame to 160x90, tile in 10x10 grid
+        # FFmpeg tile command: scale each frame to 160x90, tile in 10x10 grid with qscale compression to guarantee size <2MB
         cmd = [
             'ffmpeg', '-y',
             '-i', video_path,
             '-vf', f'fps=1/{interval},scale=160:90,tile={columns}x{rows}',
+            '-qscale:v', '5',
             '-vsync', 'vfr',
             sprite_template
         ]
@@ -218,31 +219,63 @@ class FFmpegTranscoder:
             raise Exception(f"FFmpeg failed with exit code {process.returncode}. Log: {error_log}")
 
     @classmethod
-    def transcode_hls(
+    def convert_original_streamable(cls, video_path: str, target_dir: str) -> str:
+        """
+        Performs a fast stream copy of the original video file, moving the moov atom
+        to the beginning (faststart) to make it easy to stream without transcoding.
+        Completes in ~20 seconds.
+        """
+        output_path = os.path.join(target_dir, 'original.mp4')
+        
+        # If output_path is a symlink, remove it
+        if os.path.islink(output_path):
+            os.unlink(output_path)
+        elif os.path.exists(output_path):
+            try:
+                os.remove(output_path)
+            except Exception:
+                pass
+
+        cmd = [
+            'ffmpeg', '-y',
+            '-i', video_path,
+            '-c', 'copy',
+            '-map', '0',
+            '-movflags', '+faststart',
+            output_path
+        ]
+        print(f"Executing FFmpeg command (Original Conversion): {' '.join(cmd)}")
+        logger.info(f"Executing FFmpeg command (Original Conversion): {' '.join(cmd)}")
+        
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode != 0:
+            logger.error(f"Failed to generate streamable copy: {result.stderr.decode()}")
+            raise Exception("FFmpeg original conversion failed")
+            
+        return output_path
+
+    @classmethod
+    def _transcode_to_hls_profile(
         cls,
         video_path: str,
         target_dir: str,
-        width: int,
-        height: int,
+        target_w: int,
+        target_h: int,
+        target_bv: str,
+        target_ba: str,
+        profile_name: str,
         duration: float,
         has_audio: bool,
         progress_callback: Optional[Callable[[float], None]] = None,
-        target_quality: str = 'original',
-        video_codec: str = '',
-        audio_codec: str = '',
         audio_tracks: Optional[List[Dict[str, Any]]] = None
     ) -> List[Dict[str, Any]]:
         """
-        Transcodes or copies a video file into a streamable adaptive HLS stream with multi-audio support.
-        Optimally uses hardware GPU/CUDA acceleration if available and falls back to CPU.
+        Generic internal HLS transcoder supporting single-profile target (1080p, 720p, or 480p).
         """
-        if not video_codec or not audio_codec:
+        if audio_tracks is None:
             try:
                 info = cls.probe_video(video_path)
-                video_codec = info.get('video_codec', '')
-                audio_codec = info.get('audio_codec', '')
-                if audio_tracks is None:
-                    audio_tracks = info.get('audio_tracks', [])
+                audio_tracks = info.get('audio_tracks', [])
             except Exception:
                 pass
 
@@ -252,7 +285,7 @@ class FFmpegTranscoder:
                     'index': 0,
                     'language': 'und',
                     'title': 'Audio Track 1',
-                    'codec': audio_codec or 'aac'
+                    'codec': 'aac'
                 }]
             else:
                 audio_tracks = []
@@ -266,81 +299,6 @@ class FFmpegTranscoder:
         for i in range(num_streams):
             os.makedirs(os.path.join(streams_dir, f'stream_{i}'), exist_ok=True)
 
-        # 1. Determine if we can do Stream Copy
-        can_copy_video = (target_quality == 'original' and video_codec == 'h264')
-        all_audio_aac = all(track.get('codec') == 'aac' for track in audio_tracks)
-        can_copy_audio = (target_quality == 'original' and (all_audio_aac or not audio_tracks))
-        is_stream_copy = can_copy_video and can_copy_audio
-
-        if is_stream_copy:
-            logger.info("Codecs are compatible (H264/AAC). Initiating stream copying...")
-            cmd = ['ffmpeg', '-y', '-i', video_path, '-progress', '-']
-            cmd += ['-map', '0:v:0', '-c:v', 'copy']
-            
-            var_stream_map_parts = []
-            if audio_tracks:
-                var_stream_map_parts.append("v:0,agroup:audios")
-                for idx, track in enumerate(audio_tracks):
-                    cmd += ['-map', f'0:a:{idx}', f'-c:a:{idx}', 'copy']
-                    lang = track.get('language', 'und')
-                    title = track.get('title', f"Audio_{idx + 1}").replace(" ", "_")
-                    var_stream_map_parts.append(f"a:{idx},agroup:audios,language:{lang},name:{title}")
-            else:
-                var_stream_map_parts.append("v:0")
-                
-            var_stream_map = " ".join(var_stream_map_parts)
-
-            cmd += [
-                '-f', 'hls',
-                '-hls_time', '6',
-                '-hls_playlist_type', 'event',
-                '-master_pl_name', 'master.m3u8',
-                '-var_stream_map', var_stream_map,
-                '-hls_segment_filename', os.path.join(streams_dir, 'stream_%v', 'data%03d.ts'),
-                os.path.join(streams_dir, 'stream_%v', 'playlist.m3u8')
-            ]
-            
-            cls._execute_ffmpeg_command(cmd, duration, progress_callback)
-            active_profiles = [{'name': 'Original (Copy)', 'w': width, 'h': height, 'b_v': 'original', 'b_a': 'original'}]
-            
-            with open(os.path.join(streams_dir, 'metadata.json'), 'w') as f:
-                json.dump({'streams': active_profiles}, f, indent=2)
-            return active_profiles
-
-        # 2. Transcoding is required (either because resolution is specified or codecs are incompatible)
-        profile_map = {
-            '1080p': {'name': '1080p', 'w': 1920, 'h': 1080, 'b_v': '4500k', 'b_a': '192k'},
-            '720p': {'name': '720p', 'w': 1280, 'h': 720, 'b_v': '2500k', 'b_a': '128k'},
-            '480p': {'name': '480p', 'w': 854, 'h': 480, 'b_v': '1000k', 'b_a': '96k'},
-        }
-
-        if target_quality in profile_map:
-            prof = profile_map[target_quality]
-            if height > 0 and prof['h'] > height:
-                # Cap at original height to avoid upscaling
-                target_w = width
-                target_h = height
-                target_bv = prof['b_v']
-                target_ba = prof['b_a']
-                profile_name = f"Original ({height}p)"
-            else:
-                target_w = prof['w']
-                target_h = prof['h']
-                target_bv = prof['b_v']
-                target_ba = prof['b_a']
-                profile_name = prof['name']
-        else:
-            # original quality but needs encoding due to non-H.264/AAC codec
-            target_w = width
-            target_h = height
-            if height >= 1080:
-                target_bv, target_ba = '4500k', '192k'
-            elif height >= 720:
-                target_bv, target_ba = '2500k', '128k'
-            else:
-                target_bv, target_ba = '1000k', '96k'
-            profile_name = 'Original'
-
         active_profiles = [{'name': profile_name, 'w': target_w, 'h': target_h, 'b_v': target_bv, 'b_a': target_ba}]
         has_gpu = cls.detect_gpu_support()
 
@@ -348,16 +306,8 @@ class FFmpegTranscoder:
         gpu_cmd = []
         if has_gpu:
             gpu_cmd = ['ffmpeg', '-y', '-hwaccel', 'cuda', '-i', video_path, '-progress', '-']
-            gpu_vf = []
-            if target_h != height or target_w != width:
-                gpu_vf.append(f"scale=-2:{target_h}")
-            else:
-                # Ensure width/height are even for h264
-                if target_w % 2 != 0 or target_h % 2 != 0:
-                    gpu_vf.append("scale=trunc(iw/2)*2:trunc(ih/2)*2")
-            if gpu_vf:
-                gpu_cmd += ['-vf', ",".join(gpu_vf)]
-            
+            gpu_vf = [f"scale=-2:{target_h}"]
+            gpu_cmd += ['-vf', ",".join(gpu_vf)]
             gpu_cmd += ['-map', '0:v:0', '-c:v', 'h264_nvenc', '-preset', 'fast', '-b:v', target_bv]
             gpu_cmd += ['-maxrate:v', f"{int(target_bv.replace('k', '')) * 1.1:.0f}k"]
             gpu_cmd += ['-bufsize:v', f"{int(target_bv.replace('k', '')) * 1.5:.0f}k"]
@@ -387,15 +337,8 @@ class FFmpegTranscoder:
 
         # Build CPU command (fallback or standard)
         cpu_cmd = ['ffmpeg', '-y', '-i', video_path, '-progress', '-']
-        cpu_vf = []
-        if target_h != height or target_w != width:
-            cpu_vf.append(f"scale=-2:{target_h}")
-        else:
-            if target_w % 2 != 0 or target_h % 2 != 0:
-                cpu_vf.append("scale=trunc(iw/2)*2:trunc(ih/2)*2")
-        if cpu_vf:
-            cpu_cmd += ['-vf', ",".join(cpu_vf)]
-            
+        cpu_vf = [f"scale=-2:{target_h}"]
+        cpu_cmd += ['-vf', ",".join(cpu_vf)]
         cpu_cmd += ['-map', '0:v:0', '-c:v', 'libx264', '-preset', 'veryfast', '-b:v', target_bv]
         cpu_cmd += ['-maxrate:v', f"{int(target_bv.replace('k', '')) * 1.1:.0f}k"]
         cpu_cmd += ['-bufsize:v', f"{int(target_bv.replace('k', '')) * 1.5:.0f}k"]
@@ -426,11 +369,10 @@ class FFmpegTranscoder:
         # Run with GPU first, fallback to CPU on any failure
         if has_gpu:
             try:
-                logger.info("Attempting GPU/CUDA accelerated HLS transcoding...")
+                logger.info(f"Attempting GPU/CUDA accelerated HLS transcoding for {profile_name}...")
                 cls._execute_ffmpeg_command(gpu_cmd, duration, progress_callback)
             except Exception as gpu_err:
                 logger.warning(f"GPU transcoding failed: {gpu_err}. Falling back to CPU...")
-                # Cleanup the directories first
                 if os.path.exists(streams_dir):
                     shutil.rmtree(streams_dir)
                 os.makedirs(streams_dir, exist_ok=True)
@@ -438,8 +380,157 @@ class FFmpegTranscoder:
                     os.makedirs(os.path.join(streams_dir, f'stream_{i}'), exist_ok=True)
                 cls._execute_ffmpeg_command(cpu_cmd, duration, progress_callback)
         else:
-            logger.info("GPU/CUDA acceleration not available. Running CPU transcoding...")
+            logger.info(f"GPU/CUDA acceleration not available. Running CPU transcoding for {profile_name}...")
             cls._execute_ffmpeg_command(cpu_cmd, duration, progress_callback)
+
+        with open(os.path.join(streams_dir, 'metadata.json'), 'w') as f:
+            json.dump({'streams': active_profiles}, f, indent=2)
+            
+        return active_profiles
+
+    @classmethod
+    def transcode_480p(
+        cls,
+        video_path: str,
+        target_dir: str,
+        duration: float,
+        has_audio: bool,
+        progress_callback: Optional[Callable[[float], None]] = None,
+        audio_tracks: Optional[List[Dict[str, Any]]] = None
+    ) -> List[Dict[str, Any]]:
+        """Transcodes a video file to 480p quality."""
+        return cls._transcode_to_hls_profile(
+            video_path=video_path,
+            target_dir=target_dir,
+            target_w=854,
+            target_h=480,
+            target_bv='1000k',
+            target_ba='96k',
+            profile_name='480p',
+            duration=duration,
+            has_audio=has_audio,
+            progress_callback=progress_callback,
+            audio_tracks=audio_tracks
+        )
+
+    @classmethod
+    def transcode_720p(
+        cls,
+        video_path: str,
+        target_dir: str,
+        duration: float,
+        has_audio: bool,
+        progress_callback: Optional[Callable[[float], None]] = None,
+        audio_tracks: Optional[List[Dict[str, Any]]] = None
+    ) -> List[Dict[str, Any]]:
+        """Transcodes a video file to 720p quality."""
+        return cls._transcode_to_hls_profile(
+            video_path=video_path,
+            target_dir=target_dir,
+            target_w=1280,
+            target_h=720,
+            target_bv='2500k',
+            target_ba='128k',
+            profile_name='720p',
+            duration=duration,
+            has_audio=has_audio,
+            progress_callback=progress_callback,
+            audio_tracks=audio_tracks
+        )
+
+    @classmethod
+    def transcode_1080p(
+        cls,
+        video_path: str,
+        target_dir: str,
+        duration: float,
+        has_audio: bool,
+        progress_callback: Optional[Callable[[float], None]] = None,
+        audio_tracks: Optional[List[Dict[str, Any]]] = None
+    ) -> List[Dict[str, Any]]:
+        """Transcodes a video file to 1080p quality."""
+        return cls._transcode_to_hls_profile(
+            video_path=video_path,
+            target_dir=target_dir,
+            target_w=1920,
+            target_h=1080,
+            target_bv='4500k',
+            target_ba='192k',
+            profile_name='1080p',
+            duration=duration,
+            has_audio=has_audio,
+            progress_callback=progress_callback,
+            audio_tracks=audio_tracks
+        )
+
+    @classmethod
+    def package_original_hls(
+        cls,
+        video_path: str,
+        target_dir: str,
+        duration: float,
+        has_audio: bool,
+        progress_callback: Optional[Callable[[float], None]] = None,
+        audio_tracks: Optional[List[Dict[str, Any]]] = None
+    ) -> List[Dict[str, Any]]:
+        """Packages the original video stream directly into HLS segments without transcoding (using stream copy)."""
+        if audio_tracks is None:
+            try:
+                info = cls.probe_video(video_path)
+                audio_tracks = info.get('audio_tracks', [])
+            except Exception:
+                pass
+
+        if audio_tracks is None:
+            if has_audio:
+                audio_tracks = [{
+                    'index': 0,
+                    'language': 'und',
+                    'title': 'Audio Track 1',
+                    'codec': 'copy'
+                }]
+            else:
+                audio_tracks = []
+
+        streams_dir = os.path.join(target_dir, 'streams')
+        if os.path.exists(streams_dir):
+            shutil.rmtree(streams_dir)
+        os.makedirs(streams_dir, exist_ok=True)
+        
+        num_streams = 1 + len(audio_tracks) if audio_tracks else 1
+        for i in range(num_streams):
+            os.makedirs(os.path.join(streams_dir, f'stream_{i}'), exist_ok=True)
+
+        active_profiles = [{'name': 'original', 'w': 'original', 'h': 'original', 'b_v': 'original', 'b_a': 'original'}]
+
+        cmd = ['ffmpeg', '-y', '-i', video_path, '-progress', '-']
+        cmd += ['-map', '0:v:0', '-c:v', 'copy']
+        
+        var_stream_map_parts = []
+        if audio_tracks:
+            var_stream_map_parts.append("v:0,agroup:audios")
+            for idx, track in enumerate(audio_tracks):
+                cmd += ['-map', f'0:a:{idx}', f'-c:a:{idx}', 'copy']
+                lang = track.get('language', 'und')
+                title = track.get('title', f"Audio_{idx + 1}").replace(" ", "_")
+                var_stream_map_parts.append(f"a:{idx},agroup:audios,language:{lang},name:{title}")
+        else:
+            var_stream_map_parts.append("v:0")
+            
+        var_stream_map = " ".join(var_stream_map_parts)
+        
+        cmd += [
+            '-f', 'hls',
+            '-hls_time', '6',
+            '-hls_playlist_type', 'event',
+            '-master_pl_name', 'master.m3u8',
+            '-var_stream_map', var_stream_map,
+            '-hls_segment_filename', os.path.join(streams_dir, 'stream_%v', 'data%03d.ts'),
+            os.path.join(streams_dir, 'stream_%v', 'playlist.m3u8')
+        ]
+
+        logger.info(f"Running fast stream-copy HLS packaging: {' '.join(cmd)}")
+        cls._execute_ffmpeg_command(cmd, duration, progress_callback)
 
         with open(os.path.join(streams_dir, 'metadata.json'), 'w') as f:
             json.dump({'streams': active_profiles}, f, indent=2)

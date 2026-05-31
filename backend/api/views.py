@@ -196,7 +196,8 @@ def scan_api(request):
                 original_path=final_path,
                 slug=slug,
                 status='pending',
-                hls_status='not_required',
+                hls_status='pending',
+                hls_required=True,
                 sprite_status='pending',
                 preview_clip_status='pending',
                 preview_status='not_required',
@@ -290,6 +291,7 @@ def videos_list_api(request):
             'subtitles': v.subtitles,
             'is_series': v.is_series,
             'transcode_target': v.transcode_target,
+            'streamable_copy_status': v.streamable_copy_status,
             'hls_status': v.hls_status,
             'sprite_status': v.sprite_status,
             'preview_clip_status': v.preview_clip_status,
@@ -427,6 +429,7 @@ def video_detail_api(request, video_id):
         'subtitles': v.subtitles,
         'is_series': v.is_series,
         'transcode_target': v.transcode_target,
+        'streamable_copy_status': v.streamable_copy_status,
         'hls_status': v.hls_status,
         'sprite_status': v.sprite_status,
         'preview_clip_status': v.preview_clip_status,
@@ -463,6 +466,7 @@ def video_retry_api(request, video_id):
         
     video.transcode_target = target
     video.status = 'pending'
+    video.streamable_copy_status = 'pending'
     video.hls_status = 'pending'
     video.sprite_status = 'pending'
     video.preview_clip_status = 'pending'
@@ -474,7 +478,8 @@ def video_retry_api(request, video_id):
     return JsonResponse({'success': True, 'queued': True})
 
 def serve_streamable_file(request, relative_path):
-    """Serves transcoded assets (m3u8, ts, preview.mp4, thumbnails) dynamically from output_loc."""
+    """Serves transcoded/copied assets (m3u8, ts, preview.mp4, thumbnails, original.mp4) dynamically from output_loc with seek support."""
+    from django.views.static import serve
     source_loc = get_setting('source_loc')
     output_loc = get_setting('output_loc')
     if not output_loc:
@@ -484,37 +489,14 @@ def serve_streamable_file(request, relative_path):
             output_loc = os.path.join(settings.MEDIA_ROOT, 'streamable')
             
     abs_output = os.path.abspath(output_loc)
-    file_path = os.path.abspath(os.path.join(abs_output, relative_path))
     
-    # Path traversal validation
-    if not file_path.startswith(abs_output):
-        return HttpResponse("Forbidden", status=403)
-        
-    if not os.path.exists(file_path) or not os.path.isfile(file_path):
-        return HttpResponse("Not Found", status=404)
-        
-    content_type, _ = mimetypes.guess_type(file_path)
-    if not content_type:
-        if file_path.endswith('.m3u8'):
-            content_type = 'application/x-mpegURL'
-        elif file_path.endswith('.ts'):
-            content_type = 'video/MP2T'
-        else:
-            content_type = 'application/octet-stream'
-            
-    # Check if Nginx proxied the request to support high-performance X-Accel-Redirect range queries
-    is_nginx = 'HTTP_X_REAL_IP' in request.META or 'HTTP_X_FORWARDED_FOR' in request.META
-    if is_nginx:
-        from urllib.parse import quote
-        response = HttpResponse()
-        response['X-Accel-Redirect'] = quote(f'/original_videos{file_path}', safe='/')
-        response['Content-Type'] = content_type
+    try:
+        response = serve(request, relative_path, document_root=abs_output)
         response["Access-Control-Allow-Origin"] = "*"
         return response
-        
-    response = FileResponse(open(file_path, 'rb'), content_type=content_type)
-    response["Access-Control-Allow-Origin"] = "*"
-    return response
+    except Exception as e:
+        logger.exception(f"Error serving streamable file {relative_path}")
+        return HttpResponse("Not Found", status=404)
 
 @csrf_exempt
 def parse_url_api(request):

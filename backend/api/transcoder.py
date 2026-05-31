@@ -32,15 +32,52 @@ class VideoProcessor:
         return os.path.join(output_loc, video.slug)
 
     @classmethod
-    def process_hls_only(cls, video_id):
-        """Processes only the HLS transcoding stage."""
+    def process_streamable_copy(cls, video_id):
+        """Processes the streamable copy generation stage (original conversion)."""
         try:
             video = Video.objects.get(id=video_id)
         except Video.DoesNotExist:
             return
             
         try:
-            # 1. Probe video metadata
+            video.status = 'processing'
+            video.streamable_copy_status = 'processing'
+            video.save(update_fields=['status', 'streamable_copy_status'])
+            
+            # Ensure metadata is probed
+            if video.duration == 0.0:
+                info = FFmpegTranscoder.probe_video(video.original_path)
+                video.duration = info['duration']
+                video.width = info['width']
+                video.height = info['height']
+                video.save()
+                
+            target_dir = cls.get_target_dir(video)
+            os.makedirs(target_dir, exist_ok=True)
+            
+            # Generate the streamable copy replacing the symlink
+            FFmpegTranscoder.convert_original_streamable(video.original_path, target_dir)
+            
+            video.streamable_copy_status = 'completed'
+            video.save(update_fields=['streamable_copy_status'])
+            logger.info(f"Successfully generated streamable copy for video: {video.title}")
+        except Exception as e:
+            logger.exception(f"Failed streamable copy generation for video {video.title}")
+            video.status = 'failed'
+            video.streamable_copy_status = 'failed'
+            video.error_message = str(e)
+            video.save()
+            raise
+
+    @classmethod
+    def process_hls_only(cls, video_id):
+        """Processes only the HLS transcoding stage based on requested quality profile."""
+        try:
+            video = Video.objects.get(id=video_id)
+        except Video.DoesNotExist:
+            return
+            
+        try:
             info = FFmpegTranscoder.probe_video(video.original_path)
             video.duration = info['duration']
             video.width = info['width']
@@ -51,24 +88,47 @@ class VideoProcessor:
             os.makedirs(target_dir, exist_ok=True)
             
             def hls_progress_callback(percent):
-                # HLS transcoding is mapped to the final third (66.7% - 100%) of total progress
                 total_progress = 66.7 + (percent * 0.333)
                 video.progress = round(total_progress, 1)
                 video.save(update_fields=['progress'])
                 
-            FFmpegTranscoder.transcode_hls(
-                video_path=video.original_path,
-                target_dir=target_dir,
-                width=video.width,
-                height=video.height,
-                duration=video.duration,
-                has_audio=info['has_audio'],
-                progress_callback=hls_progress_callback,
-                target_quality=video.transcode_target,
-                video_codec=info.get('video_codec', ''),
-                audio_codec=info.get('audio_codec', ''),
-                audio_tracks=info.get('audio_tracks', [])
-            )
+            if video.transcode_target == '480p':
+                FFmpegTranscoder.transcode_480p(
+                    video_path=video.original_path,
+                    target_dir=target_dir,
+                    duration=video.duration,
+                    has_audio=info['has_audio'],
+                    progress_callback=hls_progress_callback,
+                    audio_tracks=info.get('audio_tracks', [])
+                )
+            elif video.transcode_target == '720p':
+                FFmpegTranscoder.transcode_720p(
+                    video_path=video.original_path,
+                    target_dir=target_dir,
+                    duration=video.duration,
+                    has_audio=info['has_audio'],
+                    progress_callback=hls_progress_callback,
+                    audio_tracks=info.get('audio_tracks', [])
+                )
+            elif video.transcode_target == '1080p':
+                FFmpegTranscoder.transcode_1080p(
+                    video_path=video.original_path,
+                    target_dir=target_dir,
+                    duration=video.duration,
+                    has_audio=info['has_audio'],
+                    progress_callback=hls_progress_callback,
+                    audio_tracks=info.get('audio_tracks', [])
+                )
+            else:
+                # original quality: package into HLS via stream copy (quick & no re-encoding)
+                FFmpegTranscoder.package_original_hls(
+                    video_path=video.original_path,
+                    target_dir=target_dir,
+                    duration=video.duration,
+                    has_audio=info['has_audio'],
+                    progress_callback=hls_progress_callback,
+                    audio_tracks=info.get('audio_tracks', [])
+                )
             
             video.hls_status = 'completed'
             video.status = 'completed'
@@ -96,7 +156,6 @@ class VideoProcessor:
             target_dir = cls.get_target_dir(video)
             os.makedirs(target_dir, exist_ok=True)
             
-            # Probe metadata if duration is not set (e.g. if HLS stage is bypassed)
             if video.duration == 0.0:
                 info = FFmpegTranscoder.probe_video(video.original_path)
                 video.duration = info['duration']
@@ -137,7 +196,6 @@ class VideoProcessor:
             return
             
         try:
-            # Probe metadata if duration is not set (safety fallback)
             if video.duration == 0.0:
                 info = FFmpegTranscoder.probe_video(video.original_path)
                 video.duration = info['duration']
@@ -145,7 +203,6 @@ class VideoProcessor:
                 video.height = info['height']
                 video.save()
                 
-            # Select random preview start point between 15% and 80% to avoid title cards
             import random
             if video.duration > 15:
                 start_time = random.uniform(video.duration * 0.15, video.duration * 0.80)
@@ -164,14 +221,12 @@ class VideoProcessor:
                 }
             )
 
-            # Extract the thumbnail instantly so the cover image is ready
             target_dir = cls.get_target_dir(video)
             os.makedirs(target_dir, exist_ok=True)
             midpoint = video.duration * 0.3 if video.duration > 10 else 1.0
             FFmpegTranscoder.generate_thumbnail(video.original_path, target_dir, midpoint)
             
             video.preview_clip_status = 'completed'
-            # Progress is set to a baseline of 5.0% since database preview clip & thumbnail are immediate
             video.progress = 5.0
             video.save()
             logger.info(f"Successfully processed preview database clip for video: {video.title}")
@@ -186,7 +241,7 @@ class VideoProcessor:
 
     @classmethod
     def process_preview_only(cls, video_id):
-        """Processes only the thumbnail and actual physical preview file generation stage."""
+        """Processes only the thumbnail and actual physical 5s 480p preview file generation stage."""
         try:
             video = Video.objects.get(id=video_id)
         except Video.DoesNotExist:
@@ -199,12 +254,15 @@ class VideoProcessor:
             midpoint = video.duration * 0.3 if video.duration > 10 else 1.0
             FFmpegTranscoder.generate_thumbnail(video.original_path, target_dir, midpoint)
             
-            # Slice physical preview clip only if preview_status is pending or processing
             if video.preview_status in ('pending', 'processing'):
-                # Read range from database Preview clip if it exists, otherwise select a new one
                 preview_clip = video.clips.filter(category='Preview').first()
                 start_time = preview_clip.start_time if preview_clip else (video.duration * 0.3)
-                FFmpegTranscoder.generate_preview(video.original_path, target_dir, start_time)
+                
+                # Extract preview from the streamable faststart original.mp4 copy
+                streamable_path = os.path.join(target_dir, 'original.mp4')
+                input_path = streamable_path if os.path.exists(streamable_path) else video.original_path
+                
+                FFmpegTranscoder.generate_preview(input_path, target_dir, start_time)
                 video.preview_status = 'completed'
             else:
                 video.preview_status = 'not_required'
@@ -216,7 +274,7 @@ class VideoProcessor:
             else:
                 video.progress = 66.7
             video.save()
-            logger.info(f"Successfully processed actual preview file and thumbnail for video: {video.title}")
+            logger.info(f"Successfully processed actual 5s 480p preview file and thumbnail for video: {video.title}")
             
         except Exception as e:
             logger.exception(f"Failed physical preview/thumbnail generation for video {video.title}")
@@ -225,7 +283,6 @@ class VideoProcessor:
             video.error_message = str(e)
             video.save()
             raise
-
 
     @classmethod
     def process_video_pipeline(cls, video_id):
@@ -236,16 +293,21 @@ class VideoProcessor:
             return
             
         video.status = 'processing'
+        video.streamable_copy_status = 'pending'
         video.preview_clip_status = 'pending'
         video.sprite_status = 'pending'
-        video.preview_status = 'not_required'
+        video.preview_status = 'pending'
         video.hls_status = 'pending'
         video.progress = 1.0
         video.error_message = None
         video.save()
         
-        cls.process_preview_clip_only(video_id)
+        cls.process_streamable_copy(video_id)
         
+        video.refresh_from_db()
+        if video.status != 'failed':
+            cls.process_preview_clip_only(video_id)
+            
         video.refresh_from_db()
         if video.status != 'failed':
             video.sprite_status = 'processing'
