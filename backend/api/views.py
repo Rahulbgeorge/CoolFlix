@@ -528,9 +528,18 @@ def parse_url_api(request):
         
         if not url:
             return JsonResponse({'error': 'URL cannot be empty'}, status=400)
-            
+
+        if url.startswith('magnet:'):
+            # Paste direct magnet links support: parse and return immediately
+            parsed_link = MagnetParser.parse_magnet_link(url, "Direct Magnet Link")
+            return JsonResponse({
+                'success': True,
+                'page_title': 'Direct Magnet Link',
+                'magnets': [parsed_link.model_dump()]
+            })
+
         if not (url.startswith('http://') or url.startswith('https://')):
-            return JsonResponse({'error': 'Invalid URL scheme. Must start with http:// or https://'}, status=400)
+            return JsonResponse({'error': 'Invalid URL scheme. Must start with http://, https://, or paste magnet: directly'}, status=400)
             
         # Parse the page
         parser_output = MagnetParser.parse_page(url)

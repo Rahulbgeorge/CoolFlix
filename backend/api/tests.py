@@ -83,3 +83,25 @@ class VideoClipAPITests(TestCase):
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(VideoClip.objects.filter(id=self.clip.id).count(), 0)
+
+class DownloaderAPITests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_parse_url_api_direct_magnet(self):
+        url = reverse('parse_url_api')
+        magnet_link = "magnet:?xt=urn:btih:1a907709efe79c39cd778ca2c07f544b0028456d&dn=Captain.America.Civil.War.2016.1080p"
+        post_data = {'url': magnet_link}
+        response = self.client.post(
+            url,
+            data=json.dumps(post_data),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertTrue(data['success'])
+        self.assertEqual(data['page_title'], "Direct Magnet Link")
+        self.assertEqual(len(data['magnets']), 1)
+        self.assertEqual(data['magnets'][0]['magnet_link'], magnet_link)
+        self.assertEqual(data['magnets'][0]['resolution'], "1080p")
+        self.assertEqual(data['magnets'][0]['title'], "Captain America Civil War (2016) [1080P]")

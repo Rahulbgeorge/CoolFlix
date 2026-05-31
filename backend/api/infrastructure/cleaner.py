@@ -58,6 +58,10 @@ class FileNameCleaner:
         original_filename = os.path.basename(filepath)
         base_name, ext = os.path.splitext(original_filename)
 
+        # If the split extension is not a standard video format, keep it in the base_name
+        if ext and ext.lower() not in ['.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv', '.webm', '.m4v']:
+            base_name = original_filename
+
         # 1. Parse Year
         year = None
         # Look for 4 digit year between 1900 and 2099

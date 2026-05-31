@@ -8,6 +8,17 @@ from .transcoder import VideoProcessor
 
 logger = logging.getLogger(__name__)
 
+def run_preview_clip_thumbnail_cron():
+    """
+    
+    Decoupled cron task that processes video tasks in order of priority:
+    1. Quick database preview clip & thumbnail generation (Priority 1, runs instantly).
+    """
+    # Determine the project root to store the lock file securely
+    Video.objects.filter(preview_clip_status='processing').update(preview_clip_status='pending')
+    Video.objects.filter(preview_status='processing').update(preview_status='pending')
+    
+
 def run_transcoder_cron():
     """
     Decoupled cron task that processes video tasks in order of priority:
@@ -34,8 +45,6 @@ def run_transcoder_cron():
     try:
         Video.objects.filter(hls_status='processing').update(hls_status='pending')
         Video.objects.filter(sprite_status='processing').update(sprite_status='pending')
-        Video.objects.filter(preview_clip_status='processing').update(preview_clip_status='pending')
-        Video.objects.filter(preview_status='processing').update(preview_status='pending')
         Video.objects.filter(status='processing').update(status='pending')
     except Exception as e:
         logger.error(f"Error resetting stalled tasks: {e}")

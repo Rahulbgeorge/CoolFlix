@@ -53,3 +53,26 @@ class MagnetParserTests(SimpleTestCase):
         self.assertEqual(third_magnet.size, "1.5GB")
         self.assertEqual(third_magnet.resolution, "720p")
         self.assertEqual(third_magnet.title, "Veerabhadrudu (2026) [720P] [DVDScr] [1.5GB] (Telugu)")
+
+    def test_parse_torrent_galaxy_structure(self):
+        # Mock TorrentGalaxy row HTML layout
+        html_content = """
+        <html>
+        <body>
+            <div class="tgxtablerow">
+                <div class="tgxtablecell">
+                    <a href="/torrent/12345/Captain-America" class="tx-row-title"><b>Captain.America.Civil.War.2016.1080p.Bluray.x264.mkv</b></a>
+                </div>
+                <div class="tgxtablecell">
+                    <a href="magnet:?xt=urn:btih:6fd1&dn=Captain.America.Civil.War.2016" class="btn-magnet"><i class="fa fa-magnet"></i></a>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        output = MagnetParser.parse_page(url="https://torrentgalaxy.to", html_content=html_content)
+        self.assertEqual(len(output.magnets), 1)
+        self.assertEqual(output.magnets[0].resolution, "1080p")
+        self.assertEqual(output.magnets[0].quality, "Bluray")
+        self.assertEqual(output.magnets[0].codec, "x264")
+        self.assertEqual(output.magnets[0].title, "Captain America Civil War (2016) [1080P] [Bluray]")

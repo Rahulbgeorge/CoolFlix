@@ -35,71 +35,72 @@ class MagnetParser:
     def parse_magnet_link(cls, magnet_link: str, fallback_title: str) -> ParsedMagnetLink:
         """Parses a single magnet link and extracts title and details."""
         original_name = None
-        size = None
-        resolution = None
-        quality = None
-        codec = None
-        languages = []
         
         # Decode display name from magnet URL (dn query parameter)
         try:
-            parsed_query = urllib.parse.parse_qs(urllib.parse.urlparse(magnet_link).query)
-            dn_list = parsed_query.get('dn', [])
-            if dn_list:
-                original_name = dn_list[0]
+            if '?' in magnet_link:
+                query_str = magnet_link.split('?', 1)[1]
+                parsed_query = urllib.parse.parse_qs(query_str)
+                dn_list = parsed_query.get('dn', [])
+                if dn_list:
+                    original_name = dn_list[0]
         except Exception:
             pass
 
-        if original_name:
-            # We have a display name. We can run our FileNameCleaner on it to parse details!
-            clean_info = FileNameCleaner.clean(original_name)
-            
-            # Construct a clean title using the parsed parts
-            title_parts = [clean_info.cleaned_name]
-            if clean_info.year:
-                title_parts.append(f"({clean_info.year})")
-            if clean_info.season:
-                title_parts.append(clean_info.season)
-            if clean_info.episode:
-                title_parts.append(clean_info.episode)
-                
-            badges = []
-            if clean_info.resolution:
-                badges.append(clean_info.resolution.upper())
-                resolution = clean_info.resolution
-            if clean_info.quality:
-                badges.append(clean_info.quality)
-                quality = clean_info.quality
-            if clean_info.size:
-                badges.append(clean_info.size)
-                size = clean_info.size
-            if clean_info.subtitles:
-                badges.append("SUB")
-                
-            # Languages
-            if clean_info.languages:
-                languages = clean_info.languages
+        # We can clean both original_name and fallback_title to merge/supplement information!
+        clean_dn = FileNameCleaner.clean(original_name) if original_name else None
+        clean_fb = FileNameCleaner.clean(fallback_title) if fallback_title else None
+        
+        # Helper to get the best field by prioritizing the DN param first, then falling back to webpage title
+        def get_field(field_name, default=None):
+            val_dn = getattr(clean_dn, field_name, None) if clean_dn else None
+            val_fb = getattr(clean_fb, field_name, None) if clean_fb else None
+            return val_dn if val_dn is not None else (val_fb if val_fb is not None else default)
 
-            badge_str = " ".join([f"[{b}]" for b in badges])
-            lang_str = f" ({' / '.join(languages)})" if languages else ""
+        # Merge languages lists
+        langs_dn = getattr(clean_dn, 'languages', []) if clean_dn else []
+        langs_fb = getattr(clean_fb, 'languages', []) if clean_fb else []
+        languages = list(dict.fromkeys(langs_dn + langs_fb))
+
+        # Re-derive standard values
+        size = get_field('size')
+        resolution = get_field('resolution')
+        quality = get_field('quality')
+        codec = get_field('codec')
+        
+        # Build movie title. We want the most descriptive base name
+        cleaned_name = get_field('cleaned_name', fallback_title)
+        year = get_field('year')
+        season = get_field('season')
+        episode = get_field('episode')
+        subtitles = clean_dn.subtitles if clean_dn else (clean_fb.subtitles if clean_fb else False)
+
+        title_parts = [cleaned_name]
+        if year:
+            title_parts.append(f"({year})")
+        if season:
+            title_parts.append(season)
+        if episode:
+            title_parts.append(episode)
             
-            title = " ".join(title_parts)
-            if badge_str:
-                title += f" {badge_str}"
-            if lang_str:
-                title += lang_str
-                
-            codec = clean_info.codec
-        else:
-            # Fallback when magnet does not have a dn parameter
-            title = fallback_title
-            # Attempt to parse resolution/size/languages from fallback title if possible
-            clean_info = FileNameCleaner.clean(fallback_title)
-            size = clean_info.size
-            resolution = clean_info.resolution
-            quality = clean_info.quality
-            codec = clean_info.codec
-            languages = clean_info.languages
+        badges = []
+        if resolution:
+            badges.append(resolution.upper())
+        if quality:
+            badges.append(quality)
+        if size:
+            badges.append(size)
+        if subtitles:
+            badges.append("SUB")
+            
+        badge_str = " ".join([f"[{b}]" for b in badges])
+        lang_str = f" ({' / '.join(languages)})" if languages else ""
+        
+        title = " ".join(title_parts)
+        if badge_str:
+            title += f" {badge_str}"
+        if lang_str:
+            title += lang_str
 
         return ParsedMagnetLink(
             magnet_link=magnet_link,
@@ -151,18 +152,62 @@ class MagnetParser:
         for idx, anchor in enumerate(anchors):
             href = anchor['href'].strip()
             if href.startswith('magnet:'):
-                # Attempt to get a descriptive label from the anchor text
+                # 1. Attempt to get a descriptive label from the anchor text
                 anchor_text = anchor.get_text(separator=' ').strip()
                 # Clean up multiple whitespaces
                 anchor_text = re.sub(r'\s+', ' ', anchor_text)
                 
                 # Remove common MovieRulz anchor text prefixes like "GET THIS TORRENT"
-                clean_anchor = re.sub(r'^GET THIS TORRENT\s*', '', anchor_text, flags=re.IGNORECASE)
-                clean_anchor = clean_anchor.strip()
+                clean_anchor = re.sub(
+                    r'^(GET THIS TORRENT|Magnet|Download|Torrent|Magnet Link)\s*',
+                    '',
+                    anchor_text,
+                    flags=re.IGNORECASE
+                ).strip()
                 
-                # Fallback title if dn is missing
+                descriptive_title = ""
+                if clean_anchor and len(clean_anchor) > 3 and not any(x in clean_anchor.lower() for x in ['download', 'magnet', 'torrent']):
+                    descriptive_title = clean_anchor
+                else:
+                    # 2. Smart Traversal: Go up the DOM tree to find corresponding movie title link (e.g. for TorrentGalaxy)
+                    current = anchor
+                    for _ in range(4): # Traverse up to 4 levels
+                        current = current.parent
+                        if not current:
+                            break
+                            
+                        found = False
+                        # Find non-magnet sibling text links in the same row/container
+                        for sibling in current.find_all('a', href=True):
+                            s_href = sibling['href'].strip()
+                            if not s_href.startswith('magnet:') and not s_href.startswith('javascript:'):
+                                s_text = sibling.get_text(separator=' ').strip()
+                                s_text = re.sub(r'\s+', ' ', s_text)
+                                # Ignore short or generic utility links (e.g. download, magnet, login)
+                                if len(s_text) > 10 and not any(x in s_text.lower() for x in ['download', 'magnet', 'torrent', 'rss', 'login', 'register']):
+                                    descriptive_title = s_text
+                                    found = True
+                                    break
+                        if found:
+                            break
+                            
+                        # Also check standard headings or text divs within this row
+                        for tag in ['div', 'span', 'h3', 'h4', 'b', 'strong']:
+                            for child in current.find_all(tag):
+                                c_text = child.get_text(separator=' ').strip()
+                                c_text = re.sub(r'\s+', ' ', c_text)
+                                if len(c_text) > 10 and not any(x in c_text.lower() for x in ['download', 'magnet', 'torrent', 'rss']):
+                                    descriptive_title = c_text
+                                    found = True
+                                    break
+                            if found:
+                                break
+                
+                # Fallback title if no descriptive text could be extracted
                 fallback = f"{page_title} - Link {idx + 1}"
-                if clean_anchor:
+                if descriptive_title:
+                    fallback = descriptive_title
+                elif clean_anchor:
                     fallback = f"{page_title} ({clean_anchor})"
                     
                 parsed_link = cls.parse_magnet_link(href, fallback)
