@@ -57,19 +57,9 @@ class FFmpegTranscoderTests(SimpleTestCase):
         mock_run.return_value = mock_result
         self.assertFalse(FFmpegTranscoder.detect_gpu_support())
 
-    @patch('subprocess.run')
-    def test_convert_original_streamable(self, mock_run):
-        mock_result = MagicMock()
-        mock_result.returncode = 0
-        mock_run.return_value = mock_result
-
+    def test_convert_original_streamable(self):
         out_path = FFmpegTranscoder.convert_original_streamable("video.mp4", "/tmp")
-        self.assertTrue(out_path.endswith("original.mp4"))
-        
-        args, kwargs = mock_run.call_args
-        cmd_str = " ".join(args[0])
-        self.assertIn('-c copy', cmd_str)
-        self.assertIn('-movflags +faststart', cmd_str)
+        self.assertEqual(out_path, "video.mp4")
 
     @patch('subprocess.Popen')
     @patch('api.infrastructure.transcoder.FFmpegTranscoder.detect_gpu_support')
@@ -160,15 +150,13 @@ class RunTranscoderCommandTests(TestCase):
     @patch('api.transcoder.VideoProcessor.process_sprite_only')
     @patch('api.transcoder.VideoProcessor.process_preview_only')
     @patch('api.transcoder.VideoProcessor.process_preview_clip_only')
-    @patch('api.transcoder.VideoProcessor.process_streamable_copy')
-    def test_run_transcoder_priority_flow(self, mock_streamable, mock_preview_clip, mock_preview, mock_sprite, mock_hls, mock_flock):
+    def test_run_transcoder_priority_flow(self, mock_preview_clip, mock_preview, mock_sprite, mock_hls, mock_flock):
         # Create 2 pending videos
         v1 = Video.objects.create(
             title="Video 1",
             original_path="/path/v1.mp4",
             slug="v1",
             status="pending",
-            streamable_copy_status="pending",
             hls_status="pending",
             sprite_status="pending",
             preview_status="pending",
@@ -179,19 +167,11 @@ class RunTranscoderCommandTests(TestCase):
             original_path="/path/v2.mp4",
             slug="v2",
             status="pending",
-            streamable_copy_status="pending",
             hls_status="pending",
             sprite_status="pending",
             preview_status="pending",
             hls_required=True
         )
-
-        # Mock original conversion side effect
-        def complete_original_conversion(vid_id):
-            video = Video.objects.get(id=vid_id)
-            video.streamable_copy_status = 'completed'
-            video.save()
-        mock_streamable.side_effect = complete_original_conversion
 
         # Mock Preview Clip side effect: complete preview clip stage
         def complete_preview_clip(vid_id):
@@ -227,27 +207,22 @@ class RunTranscoderCommandTests(TestCase):
         call_command('run_transcoder')
 
         # Assertions:
-        # 1. Original copy generated
-        self.assertEqual(mock_streamable.call_count, 2)
-        mock_streamable.assert_any_call(v1.id)
-        mock_streamable.assert_any_call(v2.id)
-
-        # 2. Preview clips should be processed for both videos
+        # 1. Preview clips should be processed for both videos
         self.assertEqual(mock_preview_clip.call_count, 2)
         mock_preview_clip.assert_any_call(v1.id)
         mock_preview_clip.assert_any_call(v2.id)
 
-        # 3. Sprite sheet should be generated next
+        # 2. Sprite sheet should be generated next
         self.assertEqual(mock_sprite.call_count, 2)
         mock_sprite.assert_any_call(v1.id)
         mock_sprite.assert_any_call(v2.id)
 
-        # 4. Previews generated
+        # 3. Previews generated
         self.assertEqual(mock_preview.call_count, 2)
         mock_preview.assert_any_call(v1.id)
         mock_preview.assert_any_call(v2.id)
 
-        # 5. HLS processed
+        # 4. HLS processed
         self.assertEqual(mock_hls.call_count, 2)
         mock_hls.assert_any_call(v1.id)
         mock_hls.assert_any_call(v2.id)
@@ -257,27 +232,18 @@ class RunTranscoderCommandTests(TestCase):
     @patch('api.transcoder.VideoProcessor.process_sprite_only')
     @patch('api.transcoder.VideoProcessor.process_preview_only')
     @patch('api.transcoder.VideoProcessor.process_preview_clip_only')
-    @patch('api.transcoder.VideoProcessor.process_streamable_copy')
-    def test_run_transcoder_hls_skipped_by_default(self, mock_streamable, mock_preview_clip, mock_preview, mock_sprite, mock_hls, mock_flock):
+    def test_run_transcoder_hls_skipped_by_default(self, mock_preview_clip, mock_preview, mock_sprite, mock_hls, mock_flock):
         # Create a pending video with hls_required=False (default)
         v = Video.objects.create(
             title="Video Default",
             original_path="/path/default.mp4",
             slug="default-vid",
             status="pending",
-            streamable_copy_status="pending",
             hls_status="pending",
             sprite_status="pending",
             preview_status="pending",
             hls_required=False
         )
-
-        # Mock original conversion side effect
-        def complete_original_conversion(vid_id):
-            video = Video.objects.get(id=vid_id)
-            video.streamable_copy_status = 'completed'
-            video.save()
-        mock_streamable.side_effect = complete_original_conversion
 
         # Mock Preview Clip: complete preview clip stage
         def complete_preview_clip(vid_id):
@@ -309,8 +275,6 @@ class RunTranscoderCommandTests(TestCase):
         call_command('run_transcoder')
 
         # Assertions:
-        # Original copy generated
-        self.assertEqual(mock_streamable.call_count, 1)
         # Sprite sheet and preview generated
         self.assertEqual(mock_preview_clip.call_count, 1)
         self.assertEqual(mock_sprite.call_count, 1)

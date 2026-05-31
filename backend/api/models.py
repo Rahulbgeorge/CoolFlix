@@ -30,7 +30,6 @@ class Video(models.Model):
             ('480p', '480p SD')
         ]
     )
-    streamable_copy_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_required')
     hls_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     sprite_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     preview_clip_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')

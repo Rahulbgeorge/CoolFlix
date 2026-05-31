@@ -39,48 +39,18 @@ def run_fast_pipeline_cron():
     
     # Recover stalled jobs
     try:
-        Video.objects.filter(streamable_copy_status='processing').update(streamable_copy_status='pending')
         Video.objects.filter(preview_clip_status='processing').update(preview_clip_status='pending')
         Video.objects.filter(preview_status='processing').update(preview_status='pending')
     except Exception as e:
         logger.error(f"Error resetting stalled fast tasks: {e}")
 
-    # 1. First Priority: Process streamable copy (Original Conversion)
+    # 1. First Priority: Quick preview clip & thumbnail metadata
     while True:
         video_id = None
         try:
             with transaction.atomic():
                 video = Video.objects.filter(
-                    streamable_copy_status='pending'
-                ).exclude(status='failed').order_by('created_at').select_for_update().first()
-                
-                if video:
-                    video.status = 'processing'
-                    video.streamable_copy_status = 'processing'
-                    video.progress = 2.0
-                    video.save()
-                    video_id = video.id
-        except Exception as e:
-            logger.error(f"Error fetching pending streamable copy task: {e}")
-            break
-            
-        if not video_id:
-            break
-            
-        try:
-            logger.info(f"Running Original streamable copy conversion for video ID {video_id}...")
-            VideoProcessor.process_streamable_copy(video_id)
-        except Exception as e:
-            logger.error(f"Failed Original conversion for video ID {video_id}: {e}")
-
-    # 2. Second Priority: Quick preview clip & thumbnail metadata
-    while True:
-        video_id = None
-        try:
-            with transaction.atomic():
-                video = Video.objects.filter(
-                    preview_clip_status='pending',
-                    streamable_copy_status='completed'
+                    preview_clip_status='pending'
                 ).exclude(status='failed').order_by('created_at').select_for_update().first()
                 
                 if video:
@@ -102,14 +72,13 @@ def run_fast_pipeline_cron():
         except Exception as e:
             logger.error(f"Failed Preview clip generation for video ID {video_id}: {e}")
 
-    # 3. Third Priority: Physical 5s 480p silent preview clip
+    # 2. Second Priority: Physical 5s 480p silent preview clip
     while True:
         video_id = None
         try:
             with transaction.atomic():
                 video = Video.objects.filter(
-                    preview_status='pending',
-                    streamable_copy_status='completed'
+                    preview_status='pending'
                 ).exclude(status='failed').order_by('created_at').select_for_update().first()
                 
                 if video:
@@ -131,7 +100,7 @@ def run_fast_pipeline_cron():
         except Exception as e:
             logger.error(f"Failed Physical Preview generation for video ID {video_id}: {e}")
 
-    # 4. Fourth Priority: Original HLS copy (if requested and target is original)
+    # 3. Third Priority: Original HLS VOD packaging (stream copy)
     while True:
         video_id = None
         try:
@@ -139,8 +108,7 @@ def run_fast_pipeline_cron():
                 video = Video.objects.filter(
                     hls_status='pending',
                     hls_required=True,
-                    transcode_target='original',
-                    streamable_copy_status='completed'
+                    transcode_target='original'
                 ).exclude(status='failed').order_by('created_at').select_for_update().first()
                 
                 if video:

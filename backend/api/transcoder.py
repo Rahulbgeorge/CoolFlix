@@ -31,43 +31,6 @@ class VideoProcessor:
                 output_loc = os.path.join(settings.MEDIA_ROOT, 'streamable')
         return os.path.join(output_loc, video.slug)
 
-    @classmethod
-    def process_streamable_copy(cls, video_id):
-        """Processes the streamable copy generation stage (original conversion)."""
-        try:
-            video = Video.objects.get(id=video_id)
-        except Video.DoesNotExist:
-            return
-            
-        try:
-            video.status = 'processing'
-            video.streamable_copy_status = 'processing'
-            video.save(update_fields=['status', 'streamable_copy_status'])
-            
-            # Ensure metadata is probed
-            if video.duration == 0.0:
-                info = FFmpegTranscoder.probe_video(video.original_path)
-                video.duration = info['duration']
-                video.width = info['width']
-                video.height = info['height']
-                video.save()
-                
-            target_dir = cls.get_target_dir(video)
-            os.makedirs(target_dir, exist_ok=True)
-            
-            # Generate the streamable copy replacing the symlink
-            FFmpegTranscoder.convert_original_streamable(video.original_path, target_dir)
-            
-            video.streamable_copy_status = 'completed'
-            video.save(update_fields=['streamable_copy_status'])
-            logger.info(f"Successfully generated streamable copy for video: {video.title}")
-        except Exception as e:
-            logger.exception(f"Failed streamable copy generation for video {video.title}")
-            video.status = 'failed'
-            video.streamable_copy_status = 'failed'
-            video.error_message = str(e)
-            video.save()
-            raise
 
     @classmethod
     def process_hls_only(cls, video_id):
@@ -292,7 +255,6 @@ class VideoProcessor:
             return
             
         video.status = 'processing'
-        video.streamable_copy_status = 'pending'
         video.preview_clip_status = 'pending'
         video.sprite_status = 'pending'
         video.preview_status = 'pending'
@@ -301,11 +263,7 @@ class VideoProcessor:
         video.error_message = None
         video.save()
         
-        cls.process_streamable_copy(video_id)
-        
-        video.refresh_from_db()
-        if video.status != 'failed':
-            cls.process_preview_clip_only(video_id)
+        cls.process_preview_clip_only(video_id)
             
         video.refresh_from_db()
         if video.status != 'failed':

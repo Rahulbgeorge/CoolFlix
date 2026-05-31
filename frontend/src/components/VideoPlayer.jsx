@@ -238,100 +238,83 @@ export default function VideoPlayer({ videoId, apiBaseUrl, onClose }) {
       }
     };
 
-    const useDirectMp4 = videoData.hls_status !== 'completed';
+    // Adaptive HLS streaming
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        maxBufferLength: 30,
+        enableWorker: true
+      });
+      hls.loadSource(videoData.master_playlist_url);
+      hls.attachMedia(videoElement);
+      hlsRef.current = hls;
 
-    if (useDirectMp4) {
-      // Direct MP4 streaming via Nginx (original.mp4 symlink served with range request support)
-      videoElement.src = videoData.original_file_url;
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        // Collect HLS streams/resolutions
+        const levels = hls.levels.map((level, index) => {
+          const height = level.height || (level.attrs && level.attrs.RESOLUTION ? level.attrs.RESOLUTION.split('x')[1] : null);
+          return {
+            index,
+            label: height ? `${height}p` : `Stream ${index + 1}`
+          };
+        });
+        setQualities([{ index: -1, label: 'Auto' }, ...levels]);
+        setCurrentQualityIdx(hls.currentLevel);
+
+        // Collect audio tracks
+        const tracks = hls.audioTracks.map((track, index) => ({
+          index,
+          label: track.name || track.lang || `Track ${index + 1}`,
+          lang: track.lang
+        }));
+        setAudioTracks(tracks);
+        setCurrentAudioTrackIdx(hls.audioTrack);
+        
+        // Auto play on load
+        videoElement.play().catch(() => {});
+      });
+
+      hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (event, data) => {
+        const tracks = data.audioTracks.map((track, index) => ({
+          index,
+          label: track.name || track.lang || `Track ${index + 1}`,
+          lang: track.lang
+        }));
+        setAudioTracks(tracks);
+      });
+
+      hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, (event, data) => {
+        setCurrentAudioTrackIdx(data.id);
+      });
+
+      hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+        // Keep active level highlight in sync
+        if (hls.autoLevelEnabled) {
+          setCurrentQualityIdx(-1);
+        } else {
+          setCurrentQualityIdx(data.level);
+        }
+      });
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              hls.destroy();
+              break;
+          }
+        }
+      });
+    } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari Native Playback
+      videoElement.src = videoData.master_playlist_url;
       videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
       videoElement.play().catch(() => {});
-      
-      // TODO Phase 2: When per-track audio files are available (video_eng.mp4, video_tamil.mp4),
-      // populate audioTracks with their Nginx URLs and re-enable the language selector.
-      // Frontend will switch audio by changing videoElement.src to the selected track's URL.
-      
-      // Hide qualities selection (single file stream)
-      setQualities([]);
-      setCurrentQualityIdx(-1);
-    } else {
-      // Adaptive HLS streaming
-      if (Hls.isSupported()) {
-        const hls = new Hls({
-          maxBufferLength: 30,
-          enableWorker: true
-        });
-        hls.loadSource(videoData.master_playlist_url);
-        hls.attachMedia(videoElement);
-        hlsRef.current = hls;
-
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          // Collect HLS streams/resolutions
-          const levels = hls.levels.map((level, index) => {
-            const height = level.height || (level.attrs && level.attrs.RESOLUTION ? level.attrs.RESOLUTION.split('x')[1] : null);
-            return {
-              index,
-              label: height ? `${height}p` : `Stream ${index + 1}`
-            };
-          });
-          setQualities([{ index: -1, label: 'Auto' }, ...levels]);
-          setCurrentQualityIdx(hls.currentLevel);
-
-          // Collect audio tracks
-          const tracks = hls.audioTracks.map((track, index) => ({
-            index,
-            label: track.name || track.lang || `Track ${index + 1}`,
-            lang: track.lang
-          }));
-          setAudioTracks(tracks);
-          setCurrentAudioTrackIdx(hls.audioTrack);
-          
-          // Auto play on load
-          videoElement.play().catch(() => {});
-        });
-
-        hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (event, data) => {
-          const tracks = data.audioTracks.map((track, index) => ({
-            index,
-            label: track.name || track.lang || `Track ${index + 1}`,
-            lang: track.lang
-          }));
-          setAudioTracks(tracks);
-        });
-
-        hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, (event, data) => {
-          setCurrentAudioTrackIdx(data.id);
-        });
-
-        hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
-          // Keep active level highlight in sync
-          if (hls.autoLevelEnabled) {
-            setCurrentQualityIdx(-1);
-          } else {
-            setCurrentQualityIdx(data.level);
-          }
-        });
-
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                hls.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                hls.recoverMediaError();
-                break;
-              default:
-                hls.destroy();
-                break;
-            }
-          }
-        });
-      } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-        // Safari Native Playback
-        videoElement.src = videoData.master_playlist_url;
-        videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
-        videoElement.play().catch(() => {});
-      }
     }
 
     return () => {

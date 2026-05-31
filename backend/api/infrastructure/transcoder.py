@@ -233,52 +233,8 @@ class FFmpegTranscoder:
 
     @classmethod
     def convert_original_streamable(cls, video_path: str, target_dir: str) -> str:
-        """
-        Performs a fast stream copy of the original video file, moving the moov atom
-        to the beginning (faststart) to make it easy to stream without transcoding.
-        Completes in ~20 seconds.
-        """
-        output_path = os.path.join(target_dir, 'original.mp4')
-        
-        # If output_path is a symlink, remove it
-        if os.path.islink(output_path):
-            os.unlink(output_path)
-        elif os.path.exists(output_path):
-            try:
-                os.remove(output_path)
-            except Exception:
-                pass
-
-        cmd = [
-            'ffmpeg', '-y',
-            '-i', video_path,
-            '-c', 'copy',
-            '-map', '0',
-            '-movflags', '+faststart',
-            output_path
-        ]
-        print(f"Executing FFmpeg command (Original Conversion): {' '.join(cmd)}")
-        logger.info(f"Executing FFmpeg command (Original Conversion): {' '.join(cmd)}")
-        
-        log_path = os.path.join(target_dir, 'original_conversion.log')
-        try:
-            with open(log_path, 'w') as log_file:
-                result = subprocess.run(cmd, stdout=log_file, stderr=log_file)
-        except Exception as e:
-            logger.error(f"Failed to execute original conversion command: {e}")
-            raise
-            
-        if result.returncode != 0:
-            try:
-                with open(log_path, 'r') as log_file:
-                    lines = log_file.readlines()
-                    error_log = "".join(lines[-15:])
-            except Exception:
-                error_log = "Check original_conversion.log inside target directory."
-            logger.error(f"Failed to generate streamable copy: {error_log}")
-            raise Exception(f"FFmpeg original conversion failed. Log: {error_log}")
-            
-        return output_path
+        """Placeholder to prevent legacy import/test breakage."""
+        return video_path
 
     @classmethod
     def _transcode_to_hls_profile(

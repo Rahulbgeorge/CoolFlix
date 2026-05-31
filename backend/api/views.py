@@ -196,12 +196,11 @@ def scan_api(request):
                 original_path=final_path,
                 slug=slug,
                 status='pending',
-                streamable_copy_status='not_required',
                 hls_status='pending',
                 hls_required=True,
                 sprite_status='pending',
                 preview_clip_status='pending',
-                preview_status='not_required',
+                preview_status='pending',
                 transcode_target=get_setting('default_transcode_target', 'original'),
                 progress=0.0,
                 cleaned_title=clean_res.cleaned_name,
@@ -240,8 +239,6 @@ def videos_list_api(request):
         # Check if assets are available based on stage completion
         thumbnail_url = f"{host}/media/streamable/{v.slug}/thumbnail.jpg" if v.preview_clip_status == 'completed' else None
         master_playlist_url = f"{host}/media/streamable/{v.slug}/streams/master.m3u8" if v.hls_status == 'completed' else None
-        original_file_url = None
-        
         # Check if physical preview is completed, else look for database preview clip
         preview_url = None
         if v.preview_status == 'completed':
@@ -263,7 +260,6 @@ def videos_list_api(request):
             'thumbnail_url': thumbnail_url,
             'preview_url': preview_url,
             'master_playlist_url': master_playlist_url,
-            'original_file_url': original_file_url,
             'error_message': v.error_message,
             'created_at': v.created_at.isoformat(),
             'updated_at': v.updated_at.isoformat(),
@@ -282,7 +278,6 @@ def videos_list_api(request):
             'subtitles': v.subtitles,
             'is_series': v.is_series,
             'transcode_target': v.transcode_target,
-            'streamable_copy_status': v.streamable_copy_status,
             'hls_status': v.hls_status,
             'sprite_status': v.sprite_status,
             'preview_clip_status': v.preview_clip_status,
@@ -362,7 +357,6 @@ def video_detail_api(request, video_id):
     thumbnail_url = f"{host}/media/streamable/{v.slug}/thumbnail.jpg" if v.preview_clip_status == 'completed' else None
     master_playlist_url = f"{host}/media/streamable/{v.slug}/streams/master.m3u8" if v.hls_status == 'completed' else None
     sprite_url_template = f"{host}/media/streamable/{v.slug}/sprite_%03d.jpg" if v.sprite_status == 'completed' else None
-    original_file_url = None
     
     # Check if physical preview is completed, else look for database preview clip
     preview_url = None
@@ -400,7 +394,6 @@ def video_detail_api(request, video_id):
         'sprite_url_template': sprite_url_template,
         'sprite_info': sprite_info,
         'streams': streams,
-        'original_file_url': original_file_url,
         'audio_tracks': audio_tracks,
         'error_message': v.error_message,
         'created_at': v.created_at.isoformat(),
@@ -419,7 +412,6 @@ def video_detail_api(request, video_id):
         'subtitles': v.subtitles,
         'is_series': v.is_series,
         'transcode_target': v.transcode_target,
-        'streamable_copy_status': v.streamable_copy_status,
         'hls_status': v.hls_status,
         'sprite_status': v.sprite_status,
         'preview_clip_status': v.preview_clip_status,
@@ -456,7 +448,6 @@ def video_retry_api(request, video_id):
         
     video.transcode_target = target
     video.status = 'pending'
-    video.streamable_copy_status = 'pending'
     video.hls_status = 'pending'
     video.sprite_status = 'pending'
     video.preview_clip_status = 'pending'
