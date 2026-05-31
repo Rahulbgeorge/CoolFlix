@@ -1,5 +1,6 @@
 import { Play, Info, Settings, AlertCircle } from 'lucide-react';
 import VideoCard from './VideoCard';
+import { useFocusable } from '@noriginmedia/norigin-spatial-navigation';
 
 export default function Dashboard({ videos, onPlay, onOpenSettings, onSwitchTab }) {
   const completedVideos = videos.filter((v) => v.status === 'completed' || v.status === 'not_required');
@@ -7,6 +8,21 @@ export default function Dashboard({ videos, onPlay, onOpenSettings, onSwitchTab 
 
   // Featured video for Hero Section
   const featuredVideo = completedVideos.length > 0 ? completedVideos[0] : null;
+
+  const { ref: playRef, focused: playFocused } = useFocusable({
+    focusKey: 'HERO_PLAY',
+    onEnterPress: () => featuredVideo && onPlay(featuredVideo)
+  });
+
+  const { ref: infoRef, focused: infoFocused } = useFocusable({
+    focusKey: 'HERO_INFO',
+    onEnterPress: () => onSwitchTab('queue')
+  });
+
+  const { ref: configRef, focused: configFocused } = useFocusable({
+    focusKey: 'HERO_CONFIGURE',
+    onEnterPress: onOpenSettings
+  });
 
   return (
     <div style={{ paddingTop: 'var(--navbar-height)', paddingBottom: '80px' }}>
@@ -89,11 +105,19 @@ export default function Dashboard({ videos, onPlay, onOpenSettings, onSwitchTab 
               complete with interactive scrubber previews, multiple quality channels, and responsive playback speeds.
             </p>
             <div className="hero-btn-row">
-              <button className="btn btn-primary focusable" onClick={() => onPlay(featuredVideo)}>
+              <button
+                ref={playRef}
+                className={`btn btn-primary focusable ${playFocused ? 'nav-focused' : ''}`}
+                onClick={() => onPlay(featuredVideo)}
+              >
                 <Play size={18} fill="currentColor" />
                 Play
               </button>
-              <button className="btn btn-secondary focusable" onClick={() => onSwitchTab('queue')}>
+              <button
+                ref={infoRef}
+                className={`btn btn-secondary focusable ${infoFocused ? 'nav-focused' : ''}`}
+                onClick={() => onSwitchTab('queue')}
+              >
                 <Info size={18} />
                 Transcode Info
               </button>
@@ -121,7 +145,11 @@ export default function Dashboard({ videos, onPlay, onOpenSettings, onSwitchTab 
               and scan for videos to begin transcoding.
             </p>
             <div className="hero-btn-row">
-              <button className="btn btn-primary focusable" onClick={onOpenSettings}>
+              <button
+                ref={configRef}
+                className={`btn btn-primary focusable ${configFocused ? 'nav-focused' : ''}`}
+                onClick={onOpenSettings}
+              >
                 <Settings size={18} />
                 Configure Source Loc
               </button>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Settings, Film, ListOrdered, Download } from 'lucide-react';
+import { useFocusable } from '@noriginmedia/norigin-spatial-navigation';
 
 export default function Navbar({ activeTab, onNavigate }) {
   const [scrolled, setScrolled] = useState(false);
@@ -16,16 +17,47 @@ export default function Navbar({ activeTab, onNavigate }) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const { ref: brandRef, focused: brandFocused } = useFocusable({
+    focusKey: 'NAV_BRAND',
+    onEnterPress: () => onNavigate('/')
+  });
+
+  const { ref: browseRef, focused: browseFocused } = useFocusable({
+    focusKey: 'NAV_BROWSE',
+    onEnterPress: () => onNavigate('/')
+  });
+
+  const { ref: queueRef, focused: queueFocused } = useFocusable({
+    focusKey: 'NAV_QUEUE',
+    onEnterPress: () => onNavigate('/queue')
+  });
+
+  const { ref: downloaderRef, focused: downloaderFocused } = useFocusable({
+    focusKey: 'NAV_DOWNLOADER',
+    onEnterPress: () => onNavigate('/downloader')
+  });
+
+  const { ref: settingsRef, focused: settingsFocused } = useFocusable({
+    focusKey: 'NAV_SETTINGS',
+    onEnterPress: () => onNavigate('/settings')
+  });
+
   return (
     <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
-        <a href="#" className="navbar-brand focusable" onClick={(e) => { e.preventDefault(); onNavigate('/'); }}>
+        <a
+          ref={brandRef}
+          href="#"
+          className={`navbar-brand focusable ${brandFocused ? 'nav-focused' : ''}`}
+          onClick={(e) => { e.preventDefault(); onNavigate('/'); }}
+        >
           Netflix
         </a>
         <div className="navbar-links">
           <a
+            ref={browseRef}
             href="#"
-            className={`navbar-link focusable ${activeTab === 'browse' ? 'active' : ''}`}
+            className={`navbar-link focusable ${activeTab === 'browse' ? 'active' : ''} ${browseFocused ? 'nav-focused' : ''}`}
             onClick={(e) => {
               e.preventDefault();
               onNavigate('/');
@@ -36,8 +68,9 @@ export default function Navbar({ activeTab, onNavigate }) {
             Browse
           </a>
           <a
+            ref={queueRef}
             href="#"
-            className={`navbar-link focusable ${activeTab === 'queue' ? 'active' : ''}`}
+            className={`navbar-link focusable ${activeTab === 'queue' ? 'active' : ''} ${queueFocused ? 'nav-focused' : ''}`}
             onClick={(e) => {
               e.preventDefault();
               onNavigate('/queue');
@@ -48,8 +81,9 @@ export default function Navbar({ activeTab, onNavigate }) {
             Transcode Queue
           </a>
           <a
+            ref={downloaderRef}
             href="#"
-            className={`navbar-link focusable ${activeTab === 'downloader' ? 'active' : ''}`}
+            className={`navbar-link focusable ${activeTab === 'downloader' ? 'active' : ''} ${downloaderFocused ? 'nav-focused' : ''}`}
             onClick={(e) => {
               e.preventDefault();
               onNavigate('/downloader');
@@ -63,7 +97,8 @@ export default function Navbar({ activeTab, onNavigate }) {
       </div>
       <div className="navbar-links">
         <button
-          className="navbar-link focusable"
+          ref={settingsRef}
+          className={`navbar-link focusable ${settingsFocused ? 'nav-focused' : ''}`}
           onClick={() => onNavigate('/settings')}
           style={{ background: 'transparent', display: 'flex', alignItems: 'center', gap: '6px' }}
           title="Configure settings"

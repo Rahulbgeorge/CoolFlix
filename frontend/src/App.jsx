@@ -7,7 +7,13 @@ import VideoPlayer from './components/VideoPlayer';
 import Downloader from './components/Downloader';
 import { ConnectionManager } from './utils/connectionManager';
 import { ApiInterceptor } from './utils/apiInterceptor';
-import { SpatialNavigationManager } from './utils/spatialNavigation';
+import { init, setFocus } from '@noriginmedia/norigin-spatial-navigation';
+
+// Initialize Norigin Spatial Navigation globally
+init({
+  debug: false,
+  visualDebug: false,
+});
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -26,37 +32,24 @@ export default function App() {
     ApiInterceptor.initialize();
   }, []);
 
-  // Initialize Spatial Navigation for Smart TV remote control
-  useEffect(() => {
-    SpatialNavigationManager.init();
-    return () => SpatialNavigationManager.destroy();
-  }, []);
-
   // Auto-focus default element on path/page transition to maintain clean TV focus flow
   useEffect(() => {
     const timeout = setTimeout(() => {
-      const focusables = SpatialNavigationManager.getFocusableElements();
-      if (focusables.length > 0) {
-        const settingsOpen = currentPath === '/settings';
-        const playerOpen = currentPath.startsWith('/video/');
+      const settingsOpen = currentPath === '/settings';
+      const playerOpen = currentPath.startsWith('/video/');
 
-        if (settingsOpen) {
-          const closeBtn = document.querySelector('.modal-close');
-          if (closeBtn) {
-            SpatialNavigationManager.focusElement(closeBtn);
-            return;
-          }
-        }
-        if (playerOpen) {
-          const backBtn = document.querySelector('.player-back-btn');
-          if (backBtn) {
-            SpatialNavigationManager.focusElement(backBtn);
-            return;
-          }
-        }
-        SpatialNavigationManager.focusElement(focusables[0]);
+      if (settingsOpen) {
+        setFocus('SETTINGS_CLOSE');
+      } else if (playerOpen) {
+        setFocus('PLAYER_BACK');
+      } else if (currentPath === '/queue') {
+        setFocus('NAV_QUEUE');
+      } else if (currentPath === '/downloader') {
+        setFocus('NAV_DOWNLOADER');
+      } else {
+        setFocus('NAV_BROWSE');
       }
-    }, 200);
+    }, 150);
 
     return () => clearTimeout(timeout);
   }, [currentPath]);

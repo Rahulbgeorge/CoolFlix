@@ -23,3 +23,5 @@
 ## frontend:
   - After the backend scans, for all folders under streamable in the frontend create an icon like netflix style with scrubbable option to scrubbing through videos, and just stream the video, with forward, rewind, play pause, full screen options, and also options to select quality, by default stream in best quality, if needed use hls.js
  - there should be a settings menu via which the source loc is configurable
+
+ 
