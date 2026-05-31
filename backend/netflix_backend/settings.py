@@ -231,6 +231,8 @@ LOGGING = {
 # Cron jobs configuration via django-crontab
 CRONJOBS = [
     ('*/1 * * * *', 'api.cron.run_transcoder_cron'),
+    ('*/1 * * * *', 'api.cron.run_fast_pipeline_cron'),
+    ('*/1 * * * *', 'api.cron.run_sprite_cron'),
 ]
 # Redirect all cron job stdout and stderr to the dedicated log file
 CRONTAB_COMMAND_SUFFIX = '>> /var/logs/netflix-clone/transcoder.log 2>&1'
